@@ -57,7 +57,7 @@ func (u *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 		User: &proto.User{
 			Uuid:      user.UUID,
 			Name:      user.Name,
-			Role:      user.Role,
+			Role:      int64(user.Role),
 			Email:     user.Email,
 			Phone:     user.Phone,
 			CreatedAt: timestamppb.New(user.CreatedAt),
