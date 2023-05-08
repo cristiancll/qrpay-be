@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message User {
+    string uuid = 1;
+    string name = 2;
+    int64 role = 3;
+    string email = 4;
+    string phone = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+message UserCreateRequest {
+    string name = 1;
+    string email = 2;
+    string phone = 3;
+    string password = 4;
+}
+message UserCreateResponse {
+    User user = 1;
+}
+
+message UserAdminCreatedRequest {
+    string name = 1;
+    string phone = 3;
+}
+message UserAdminCreatedResponse {
+    User user = 1;
+}
+
+message UserUpdateRequest {
+    string uuid = 1;
+    string name = 2;
+    string email = 3;
+    string phone = 4;
+}
+message UserUpdateResponse {
+    User user = 1;
+}
+
+message UserDeleteRequest {
+    string uuid = 1;
+}
+message UserDeleteResponse { }
+
+
+message UserGetRequest {
+    string uuid = 1;
+}
+message UserGetResponse {
+    User user = 1;
+}
+
+message UserListRequest {
+
+}
+message UserListResponse {
+    repeated User users = 1;
+}
+
+message UserLoginRequest {
+    string user = 1;
+    string password = 2;
+}
+message UserLoginResponse {
+    string token = 1;
+}
+
+message UserLogoutRequest {
+    string token = 1;
+}
+message UserLogoutResponse { }
+
+service UserService {
+    rpc Create(UserCreateRequest) returns (UserCreateResponse);
+    rpc AdminCreated(UserAdminCreatedRequest) returns (UserAdminCreatedResponse);
+    rpc Update(UserUpdateRequest) returns (UserUpdateResponse);
+    rpc Delete(UserDeleteRequest) returns (UserDeleteResponse);
+    rpc Get(UserGetRequest) returns (UserGetResponse);
+    rpc List(UserListRequest) returns (UserListResponse);
+    rpc Login(UserLoginRequest) returns (UserLoginResponse);
+    rpc Logout(UserLogoutRequest) returns (UserLogoutResponse);
+}
