@@ -2,19 +2,22 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/cristiancll/qrpay-be/internal/api/handler"
+	"github.com/cristiancll/qrpay-be/internal/api/middleware"
 	"github.com/cristiancll/qrpay-be/internal/api/proto"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
+	"github.com/cristiancll/qrpay-be/internal/configs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
-	"log"
+	"google.golang.org/grpc/credentials"
 	"net"
 )
 
 type Server struct {
-	dbURL string
+	settingsPath string
 
 	db      *pgxpool.Pool
 	context context.Context
@@ -25,7 +28,9 @@ func (s *Server) startDatabase() error {
 	s.context = context.Background()
 
 	// Create a new connection pool
-	db, err := pgxpool.New(s.context, s.dbURL)
+	c := configs.Get().Database
+	url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", c.Username, c.Password, c.Host, c.Port, c.Name)
+	db, err := pgxpool.New(s.context, url)
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %v", err)
 	}
@@ -41,28 +46,18 @@ func (s *Server) startDatabase() error {
 	return nil
 }
 
-func unaryInterceptor(
-	ctx context.Context,
-	req interface{},
-	info *grpc.UnaryServerInfo,
-	handler grpc.UnaryHandler,
-) (interface{}, error) {
-	log.Println("--> unary interceptor: ", info.FullMethod)
-	return handler(ctx, req)
-}
+func loadTLSCredentials() credentials.TransportCredentials {
+	cert := &tls.Config{
+		Certificates: []tls.Certificate{*configs.Get().Keys.TLS},
+		ClientAuth:   tls.NoClientCert,
+	}
 
-func streamInterceptor(
-	srv interface{},
-	stream grpc.ServerStream,
-	info *grpc.StreamServerInfo,
-	handler grpc.StreamHandler,
-) error {
-	log.Println("--> stream interceptor: ", info.FullMethod)
-	return handler(srv, stream)
+	return credentials.NewTLS(cert)
 }
 
 func (s *Server) initializeAPI() error {
-	// Create a new instance of the UserRepository
+
+	// Create Repositories
 	userRepo := repository.NewUserRepository(s.db)
 	if err := userRepo.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate user repository: %v", err)
@@ -72,29 +67,43 @@ func (s *Server) initializeAPI() error {
 		return fmt.Errorf("unable to migrate auth repository: %v", err)
 	}
 
-	// Create a new instance of the UserService, passing in the UserRepository
+	// Create Services
 	userService := service.NewUserService(s.db, userRepo, authRepo)
+	authService := service.NewAuthService(s.db, authRepo, userRepo)
 
-	// Create a new instance of the UserHandler, passing in the UserService
+	// Create Handlers
 	userHandler := handler.NewUserHandler(userService)
+	authHandler := handler.NewAuthHandler(authService)
 
-	// Create a new instance of the grpc.Server
+	creds := loadTLSCredentials()
+
+	// Create a new gRPC server
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(unaryInterceptor),
-		grpc.StreamInterceptor(streamInterceptor),
+		grpc.Creds(creds),
+		grpc.ChainUnaryInterceptor(
+			middleware.RateLimiterUnaryInterceptor,
+			middleware.LoggingUnaryInterceptor,
+			middleware.AuthInterceptor,
+		),
+		grpc.ChainStreamInterceptor(
+			middleware.RateLimiterStreamInterceptor,
+			middleware.LoggingStreamInterceptor,
+		),
 	)
 
-	// Register the UserHandler with the grpc.Server
+	// Register the Services
 	proto.RegisterUserServiceServer(grpcServer, userHandler)
+	proto.RegisterAuthServiceServer(grpcServer, authHandler)
 
-	// Create a new TCP listener on port 50051
-	listener, err := net.Listen("tcp", ":9090")
+	// Create a new TCP listener
+	address := fmt.Sprintf(":%d", configs.Get().Server.Port)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}
 
 	// Start the gRPC server
-	fmt.Println("Starting server on port 9090...")
+	fmt.Printf("gRPC server listening at %s\n", listener.Addr())
 	if err := grpcServer.Serve(listener); err != nil {
 		return fmt.Errorf("failed to start server: %v", err)
 	}
@@ -102,12 +111,16 @@ func (s *Server) initializeAPI() error {
 	return nil
 }
 
-func New(dbURL string) *Server {
-	return &Server{dbURL: dbURL}
+func New(settingsPath string) *Server {
+	return &Server{settingsPath: settingsPath}
 }
 
 func (s *Server) Start() error {
-	err := s.startDatabase()
+	err := configs.Load(s.settingsPath)
+	if err != nil {
+		return fmt.Errorf("could not load config: %w", err)
+	}
+	err = s.startDatabase()
 	if err != nil {
 		return fmt.Errorf("could not start database: %w", err)
 	}
