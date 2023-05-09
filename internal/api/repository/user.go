@@ -13,6 +13,7 @@ import (
 type UserRepository interface {
 	PublicRepository[model.User]
 	CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, email string, phone string) error
+	GetUserByEmailOrPhone(ctx context.Context, tx pgx.Tx, user string) (*model.User, error)
 }
 
 type userRepository struct {
@@ -31,11 +32,22 @@ const (
 	getUserByIDQuery            = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE id = $1"
 	getUserByUUIDQuery          = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE uuid = $1"
 	getAllUsersQuery            = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users"
+	getUserByEmailOrPhoneQuery  = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE email = $1 OR phone = $1"
 	countByEmailOrPasswordQuery = "SELECT count(*) FROM users WHERE email = $1 OR phone = $2"
 )
 
+func (r *userRepository) GetUserByEmailOrPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
+	user := &model.User{}
+	row := tx.QueryRow(ctx, getUserByEmailOrPhoneQuery, username)
+	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("error getting user by email or phone: %w", err)
+	}
+	return user, nil
+}
+
 func (r *userRepository) CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, email string, phone string) error {
-	var count int
+	count := 0
 	row := tx.QueryRow(ctx, countByEmailOrPasswordQuery, email, phone)
 	err := row.Scan(&count)
 	if err != nil {
@@ -88,7 +100,7 @@ func (r *userRepository) Delete(ctx context.Context, tx pgx.Tx, user *model.User
 }
 
 func (r *userRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
-	var user *model.User
+	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByIDQuery, id)
 	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
@@ -99,7 +111,7 @@ func (r *userRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*mod
 }
 
 func (r *userRepository) GetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
-	var user *model.User
+	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByUUIDQuery, uuid)
 	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)

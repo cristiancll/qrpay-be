@@ -16,8 +16,6 @@ type UserHandler interface {
 	List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error)
 	Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error)
 	Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error)
-	Login(ctx context.Context, req *proto.UserLoginRequest) (*proto.UserLoginResponse, error)
-	Logout(ctx context.Context, req *proto.UserLogoutRequest) (*proto.UserLogoutResponse, error)
 	AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error)
 	proto.UserServiceServer
 }
@@ -31,7 +29,7 @@ func NewUserHandler(s service.UserService) UserHandler {
 	return &userHandler{service: s}
 }
 
-func (u *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
+func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "Name is required")
 	}
@@ -49,9 +47,9 @@ func (u *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 		Email: req.Email,
 		Phone: req.Phone,
 	}
-	err := u.service.Create(ctx, user, req.Password)
+	err := h.service.Create(ctx, user, req.Password)
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, err
 	}
 	res := &proto.UserCreateResponse{
 		User: &proto.User{
@@ -67,43 +65,31 @@ func (u *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 	return res, nil
 }
 
-func (u *userHandler) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error) {
+func (h *userHandler) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error) {
 	res := &proto.UserGetResponse{}
 
 	return res, nil
 }
 
-func (u *userHandler) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
+func (h *userHandler) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
 	res := &proto.UserListResponse{}
 
 	return res, nil
 }
 
-func (u *userHandler) Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error) {
+func (h *userHandler) Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error) {
 	res := &proto.UserUpdateResponse{}
 
 	return res, nil
 }
 
-func (u *userHandler) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error) {
+func (h *userHandler) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error) {
 	res := &proto.UserDeleteResponse{}
 
 	return res, nil
 }
 
-func (u *userHandler) Login(ctx context.Context, req *proto.UserLoginRequest) (*proto.UserLoginResponse, error) {
-	res := &proto.UserLoginResponse{}
-
-	return res, nil
-}
-
-func (u *userHandler) Logout(ctx context.Context, req *proto.UserLogoutRequest) (*proto.UserLogoutResponse, error) {
-	res := &proto.UserLogoutResponse{}
-
-	return res, nil
-}
-
-func (u *userHandler) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
+func (h *userHandler) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
 	res := &proto.UserAdminCreatedResponse{}
 
 	return res, nil
