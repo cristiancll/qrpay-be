@@ -68,7 +68,7 @@ func (r *authRepository) Delete(ctx context.Context, tx pgx.Tx, auth *model.Auth
 }
 
 func (r *authRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
-	var auth *model.Auth
+	auth := &model.Auth{}
 	row := tx.QueryRow(ctx, getAuthByIDQuery, id)
 	err := row.Scan(&auth.ID, &auth.UserID, &auth.Password, &auth.Verified, &auth.Disabled, &auth.Locked, &auth.ActivationToken, &auth.ResetToken, &auth.LastLogin, &auth.ResetExpiration, &auth.CreatedAt, &auth.UpdatedAt)
 	if err != nil {
