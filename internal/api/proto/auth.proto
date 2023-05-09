@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "user.proto";
+
+message AuthLoginRequest {
+  string user = 1;
+  string password = 2;
+}
+
+message AuthLoginResponse {
+  User user = 1;
+}
+
+message AuthVoid {}
+
+
+service AuthService {
+  rpc Login(AuthLoginRequest) returns (AuthLoginResponse);
+  rpc Logout(AuthVoid) returns (AuthVoid);
+}
