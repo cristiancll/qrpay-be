@@ -64,19 +64,6 @@ message UserListResponse {
     repeated User users = 1;
 }
 
-message UserLoginRequest {
-    string user = 1;
-    string password = 2;
-}
-message UserLoginResponse {
-    string token = 1;
-}
-
-message UserLogoutRequest {
-    string token = 1;
-}
-message UserLogoutResponse { }
-
 service UserService {
     rpc Create(UserCreateRequest) returns (UserCreateResponse);
     rpc AdminCreated(UserAdminCreatedRequest) returns (UserAdminCreatedResponse);
@@ -84,6 +71,4 @@ service UserService {
     rpc Delete(UserDeleteRequest) returns (UserDeleteResponse);
     rpc Get(UserGetRequest) returns (UserGetResponse);
     rpc List(UserListRequest) returns (UserListResponse);
-    rpc Login(UserLoginRequest) returns (UserLoginResponse);
-    rpc Logout(UserLogoutRequest) returns (UserLogoutResponse);
 }
