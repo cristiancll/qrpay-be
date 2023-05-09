@@ -1,0 +1,21 @@
+{
+  "SERVER": {
+    "name": "qrpay",
+    "port": 9090,
+    "keys_path": ".keys"
+  },
+  "DB": {
+    "host": "localhost",
+    "port": 5432,
+    "username": "postgres",
+    "password": "postgres",
+    "name": "qrpay"
+  },
+  "JWT": {
+    "key_id": "qrpay",
+    "signing_algorithm": "ES256",
+    "expires_in": "30m",
+    "refresh_threshold": "5m",
+    "issuer": "qrpay"
+  }
+}
