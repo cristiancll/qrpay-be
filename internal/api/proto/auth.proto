@@ -8,13 +8,19 @@ import "google/protobuf/timestamp.proto";
 
 import "user.proto";
 
+message Auth {
+  bool verified = 1;
+  bool disabled = 2;
+}
+
 message AuthLoginRequest {
-  string user = 1;
+  string phone = 1;
   string password = 2;
 }
 
 message AuthLoginResponse {
   User user = 1;
+  Auth auth = 2;
 }
 
 message AuthVoid {}

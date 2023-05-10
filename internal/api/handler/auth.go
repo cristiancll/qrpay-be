@@ -29,13 +29,13 @@ func NewAuthHandler(service service.AuthService) AuthHandler {
 }
 
 func (h *authHandler) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error) {
-	if req.User == "" {
+	if req.Phone == "" {
 		return nil, status.Error(codes.InvalidArgument, "User is required")
 	}
 	if req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "Password is required")
 	}
-	user, err := h.service.Login(ctx, req.User, req.Password)
+	user, err := h.service.Login(ctx, req.Phone, req.Password)
 	if err != nil {
 		return nil, err
 	}
