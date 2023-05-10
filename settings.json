@@ -11,6 +11,13 @@
     "password": "postgres",
     "name": "qrpay"
   },
+  "WPP": {
+    "host": "localhost",
+    "port": 5432,
+    "username": "postgres",
+    "password": "postgres",
+    "name": "wpp"
+  },
   "JWT": {
     "key_id": "qrpay",
     "signing_algorithm": "ES256",

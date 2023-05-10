@@ -39,6 +39,14 @@ type JWT struct {
 	RefreshThreshold string `json:"refresh_threshold"`
 }
 
+type WhatsApp struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Name     string `json:"name"`
+}
+
 func (j *JWT) GetExpiresIn() time.Duration {
 	duration, err := time.ParseDuration(j.ExpiresIn)
 	if err != nil {
@@ -64,6 +72,7 @@ type Config struct {
 	Server   Server   `json:"SERVER"`
 	Database Database `json:"DB"`
 	JWT      JWT      `json:"JWT"`
+	WhatsApp WhatsApp `json:"WPP"`
 	Keys     Keys
 }
 

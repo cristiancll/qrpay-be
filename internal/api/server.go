@@ -10,6 +10,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/configs"
+	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -66,14 +67,31 @@ func (s *Server) initializeAPI() error {
 	if err := authRepo.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate auth repository: %v", err)
 	}
+	wppRepo := repository.NewWhatsAppRepository(s.db)
+	if err := wppRepo.Migrate(s.context); err != nil {
+		return fmt.Errorf("unable to migrate whatsapp repository: %v", err)
+	}
+
+	// Create WhatsApp Client
+	whats, err := wpp.New(wppRepo)
+	if err != nil {
+		return fmt.Errorf("unable to start whatsapp client: %v", err)
+	}
+	err = whats.Start()
+	if err != nil {
+		return fmt.Errorf("unable to start whatsapp client: %v", err)
+	}
+	defer whats.Stop()
 
 	// Create Services
-	userService := service.NewUserService(s.db, userRepo, authRepo)
+	userService := service.NewUserService(s.db, whats, userRepo, authRepo)
 	authService := service.NewAuthService(s.db, authRepo, userRepo)
+	wppService := service.NewWhatsAppService(s.db, whats, wppRepo)
 
 	// Create Handlers
 	userHandler := handler.NewUserHandler(userService)
 	authHandler := handler.NewAuthHandler(authService)
+	wppHandler := handler.NewWhatsAppHandler(wppService)
 
 	creds := loadTLSCredentials()
 
@@ -94,6 +112,7 @@ func (s *Server) initializeAPI() error {
 	// Register the Services
 	proto.RegisterUserServiceServer(grpcServer, userHandler)
 	proto.RegisterAuthServiceServer(grpcServer, authHandler)
+	proto.RegisterWhatsAppServiceServer(grpcServer, wppHandler)
 
 	// Create a new TCP listener
 	address := fmt.Sprintf(":%d", configs.Get().Server.Port)
