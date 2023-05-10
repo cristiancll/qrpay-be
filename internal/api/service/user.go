@@ -7,6 +7,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/common"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
+	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,13 +27,15 @@ type userService struct {
 	pool     *pgxpool.Pool
 	repo     repository.UserRepository
 	authRepo repository.AuthRepository
+	wpp      wpp.WhatsAppClient
 }
 
-func NewUserService(pool *pgxpool.Pool, r repository.UserRepository, authRepo repository.AuthRepository) UserService {
+func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppClient, r repository.UserRepository, authRepo repository.AuthRepository) UserService {
 	return &userService{
 		pool:     pool,
 		repo:     r,
 		authRepo: authRepo,
+		wpp:      wpp,
 	}
 }
 
@@ -52,7 +55,7 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 	}
 
 	user.Role = roles.Client
-	err = s.repo.Create(ctx, tx, user)
+	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create user: %v", err)
 	}
@@ -65,7 +68,7 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 		Password: password,
 		Verified: true, // TODO: send email to verify
 	}
-	err = s.authRepo.Create(ctx, tx, auth)
+	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
 		return status.Errorf(codes.Internal, "failed to create auth: %v", err)
 	}

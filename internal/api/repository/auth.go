@@ -6,11 +6,14 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"time"
 )
 
 type AuthRepository interface {
-	PrivateRepository[model.Auth]
+	Migrater
+	TCRUDer[model.Auth]
 }
 
 type authRepository struct {
@@ -29,7 +32,7 @@ const (
 	getAuthByIDQuery     = "SELECT id, user_id, password, verified, disabled, locked, activation_token, reset_token, last_login, reset_expiration, created_at, updated_at FROM auths WHERE id = $1"
 )
 
-func (r *authRepository) Create(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *authRepository) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	var (
 		id        int64
 		createdAt time.Time
@@ -46,7 +49,7 @@ func (r *authRepository) Create(ctx context.Context, tx pgx.Tx, auth *model.Auth
 	return nil
 }
 
-func (r *authRepository) Update(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *authRepository) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	var (
 		updatedAt time.Time
 	)
@@ -59,7 +62,7 @@ func (r *authRepository) Update(ctx context.Context, tx pgx.Tx, auth *model.Auth
 	return nil
 }
 
-func (r *authRepository) Delete(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *authRepository) TDelete(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	_, err := tx.Exec(ctx, deleteAuthQuery, auth.ID)
 	if err != nil {
 		return fmt.Errorf("error deleting auth: %w", err)
@@ -67,7 +70,7 @@ func (r *authRepository) Delete(ctx context.Context, tx pgx.Tx, auth *model.Auth
 	return nil
 }
 
-func (r *authRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
+func (r *authRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
 	auth := &model.Auth{}
 	row := tx.QueryRow(ctx, getAuthByIDQuery, id)
 	err := row.Scan(&auth.ID, &auth.UserID, &auth.Password, &auth.Verified, &auth.Disabled, &auth.Locked, &auth.ActivationToken, &auth.ResetToken, &auth.LastLogin, &auth.ResetExpiration, &auth.CreatedAt, &auth.UpdatedAt)
@@ -75,6 +78,14 @@ func (r *authRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*mod
 		return nil, fmt.Errorf("error getting auth by id: %w", err)
 	}
 	return auth, nil
+}
+
+func (r *authRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.Auth, error) {
+	return nil, status.Error(codes.Unimplemented, "method not implemented")
+}
+
+func (r *authRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]model.Auth, error) {
+	return nil, status.Error(codes.Unimplemented, "method not implemented")
 }
 
 func (r *authRepository) Migrate(ctx context.Context) error {

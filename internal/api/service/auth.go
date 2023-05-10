@@ -38,7 +38,7 @@ func (s *authService) Login(ctx context.Context, username string, password strin
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
 	}
-	auth, err := s.repo.GetById(ctx, tx, user.ID)
+	auth, err := s.repo.TGetById(ctx, tx, user.ID)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "auth not found: %v", err)
 	}

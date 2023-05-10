@@ -11,7 +11,8 @@ import (
 )
 
 type UserRepository interface {
-	PublicRepository[model.User]
+	Migrater
+	TCRUDer[model.User]
 	CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, email string, phone string) error
 	GetUserByEmailOrPhone(ctx context.Context, tx pgx.Tx, user string) (*model.User, error)
 }
@@ -59,7 +60,7 @@ func (r *userRepository) CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, 
 	return nil
 }
 
-func (r *userRepository) Create(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *userRepository) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	var (
 		id        int64
 		createdAt time.Time
@@ -78,7 +79,7 @@ func (r *userRepository) Create(ctx context.Context, tx pgx.Tx, user *model.User
 	return nil
 }
 
-func (r *userRepository) Update(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *userRepository) TUpdate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	var (
 		updatedAt time.Time
 	)
@@ -91,7 +92,7 @@ func (r *userRepository) Update(ctx context.Context, tx pgx.Tx, user *model.User
 	return nil
 }
 
-func (r *userRepository) Delete(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *userRepository) TDelete(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	_, err := tx.Exec(ctx, deleteUserQuery, user.ID)
 	if err != nil {
 		return fmt.Errorf("error deleting user: %w", err)
@@ -99,7 +100,7 @@ func (r *userRepository) Delete(ctx context.Context, tx pgx.Tx, user *model.User
 	return nil
 }
 
-func (r *userRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
+func (r *userRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
 	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByIDQuery, id)
@@ -110,7 +111,7 @@ func (r *userRepository) GetById(ctx context.Context, tx pgx.Tx, id int64) (*mod
 	return user, nil
 }
 
-func (r *userRepository) GetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
+func (r *userRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
 	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByUUIDQuery, uuid)
@@ -121,7 +122,7 @@ func (r *userRepository) GetByUUID(ctx context.Context, tx pgx.Tx, uuid string) 
 	return user, nil
 }
 
-func (r *userRepository) GetAll(ctx context.Context, tx pgx.Tx) ([]model.User, error) {
+func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]model.User, error) {
 	var users []model.User
 
 	rows, err := tx.Query(ctx, getAllUsersQuery)
