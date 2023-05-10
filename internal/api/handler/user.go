@@ -33,9 +33,6 @@ func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, "Name is required")
 	}
-	if req.Email == "" {
-		return nil, status.Error(codes.InvalidArgument, "Email is required")
-	}
 	if req.Password == "" {
 		return nil, status.Error(codes.InvalidArgument, "Password is required")
 	}
@@ -44,7 +41,6 @@ func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 	}
 	user := &model.User{
 		Name:  req.Name,
-		Email: req.Email,
 		Phone: req.Phone,
 	}
 	err := h.service.Create(ctx, user, req.Password)
@@ -56,7 +52,6 @@ func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 			Uuid:      user.UUID,
 			Name:      user.Name,
 			Role:      int64(user.Role),
-			Email:     user.Email,
 			Phone:     user.Phone,
 			CreatedAt: timestamppb.New(user.CreatedAt),
 			UpdatedAt: timestamppb.New(user.UpdatedAt),

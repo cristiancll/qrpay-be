@@ -55,7 +55,6 @@ func (h *authHandler) Login(ctx context.Context, req *proto.AuthLoginRequest) (*
 			Uuid:      user.UUID,
 			Name:      user.Name,
 			Role:      int64(user.Role),
-			Email:     user.Email,
 			Phone:     user.Phone,
 			CreatedAt: timestamppb.New(user.CreatedAt),
 			UpdatedAt: timestamppb.New(user.UpdatedAt),

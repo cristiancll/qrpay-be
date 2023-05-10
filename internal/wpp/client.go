@@ -7,10 +7,12 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/configs"
 	_ "github.com/lib/pq"
+	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
+	"os"
 
 	//_ "github.com/glebarez/go-sqlite"
 	//_ "github.com/jackc/pgx/v5/pgxpool"
@@ -18,6 +20,7 @@ import (
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
 
+	qrcode "github.com/skip2/go-qrcode"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 )
 
@@ -54,15 +57,16 @@ func New(repo repository.WhatsAppRepository) (WhatsAppClient, error) {
 	}
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client := whatsmeow.NewClient(device, clientLog)
-
-	return &whatsAppClient{
+	instance := &whatsAppClient{
 		repo:      repo,
 		container: container,
 		client:    client,
 		device:    device,
 		ctx:       context.Background(),
 		whatsapp:  &model.WhatsApp{},
-	}, nil
+	}
+	instance.client.AddEventHandler(instance.eventHandler)
+	return instance, nil
 }
 
 func (c *whatsAppClient) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsmeow.QRChannelItem) {
@@ -87,13 +91,13 @@ func (c *whatsAppClient) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsm
 		if err != nil {
 			// TODO: log error
 		}
-		fmt.Println(newQRCode)
+		qrterminal.GenerateHalfBlock(evt.Code, qrterminal.H, os.Stdout)
+		//qrterminal.GenerateHalfBlock(evt.Code, qrterminal.H, os.Stdout)
 		previousCode = newQRCode
 	}
 }
 
 func (c *whatsAppClient) Start() error {
-	c.client.AddEventHandler(c.eventHandler)
 	var qrChan <-chan whatsmeow.QRChannelItem
 	if c.client.Store.ID != nil {
 		err := c.client.Connect()
@@ -141,7 +145,11 @@ func (c *whatsAppClient) eventHandler(evt interface{}) {
 }
 
 func (c *whatsAppClient) restart() {
-	// TODO: Implement
+	c.client.Disconnect()
+	err := c.Start()
+	if err != nil {
+		// TODO: log error
+	}
 }
 
 func (c *whatsAppClient) Stop() {
@@ -162,9 +170,21 @@ func (c *whatsAppClient) SendText(user *model.User, msg string) error {
 	return nil
 }
 
+func GenerateQR(data string) ([]byte, error) {
+	var qrBytes []byte
+	qrBytes, err := qrcode.Encode(data, qrcode.Highest, 256)
+	if err != nil {
+		return nil, err
+	}
+	return qrBytes, nil
+}
+
 func (c *whatsAppClient) SendImage(user *model.User) error {
-	var qrCodeBytes []byte
-	res, err := c.client.Upload(context.Background(), qrCodeBytes, whatsmeow.MediaImage)
+	qrBytes, err := GenerateQR(user.UUID)
+	if err != nil {
+		return err
+	}
+	res, err := c.client.Upload(context.Background(), qrBytes, whatsmeow.MediaImage)
 	if err != nil {
 		return err
 	}

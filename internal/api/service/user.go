@@ -11,7 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 )
 
 type UserService interface {
@@ -46,10 +45,9 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 	}
 	defer tx.Rollback(ctx)
 
-	user.Email = strings.ToLower(user.Email)
 	user.Phone = common.RemoveNonNumeric(user.Phone)
 
-	err = s.repo.CountByEmailOrPassword(ctx, tx, user.Email, user.Phone)
+	err = s.repo.CountByPhone(ctx, tx, user.Phone)
 	if err != nil {
 		return status.Error(codes.AlreadyExists, err.Error())
 	}
@@ -66,7 +64,7 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 	auth := &model.Auth{
 		UserID:   user.ID,
 		Password: password,
-		Verified: true, // TODO: send email to verify
+		Verified: false,
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
@@ -75,10 +73,16 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		//return err
 		return status.Errorf(codes.Internal, "failed to commit transaction: %v", err)
 	}
-
+	err = s.wpp.SendText(user, user.WelcomeMessage())
+	if err != nil {
+		// TODO: log error
+	}
+	err = s.wpp.SendImage(user)
+	if err != nil {
+		// TODO: log error
+	}
 	return nil
 }
 

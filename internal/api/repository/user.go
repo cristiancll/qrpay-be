@@ -13,8 +13,8 @@ import (
 type UserRepository interface {
 	Migrater
 	TCRUDer[model.User]
-	CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, email string, phone string) error
-	GetUserByEmailOrPhone(ctx context.Context, tx pgx.Tx, user string) (*model.User, error)
+	CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error
+	GetUserByPhone(ctx context.Context, tx pgx.Tx, phone string) (*model.User, error)
 }
 
 type userRepository struct {
@@ -26,30 +26,30 @@ func NewUserRepository(db *pgxpool.Pool) UserRepository {
 }
 
 const (
-	createUserTableQuery        = "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, uuid VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, role INT NOT NULL, email VARCHAR(255) NOT NULL, phone VARCHAR(255) NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)"
-	createUserQuery             = "INSERT INTO users (uuid, name, role, email, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, now(), now()) RETURNING id, created_at, updated_at"
-	updateUserQuery             = "UPDATE users SET name = $2, role = $3, email = $4, phone = $5, updated_at = now() WHERE id = $1 RETURNING updated_at"
-	deleteUserQuery             = "DELETE FROM users WHERE id = $1"
-	getUserByIDQuery            = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE id = $1"
-	getUserByUUIDQuery          = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE uuid = $1"
-	getAllUsersQuery            = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users"
-	getUserByEmailOrPhoneQuery  = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE email = $1 OR phone = $1"
-	countByEmailOrPasswordQuery = "SELECT count(*) FROM users WHERE email = $1 OR phone = $2"
+	createUserTableQuery = "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, uuid VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, role INT NOT NULL, phone VARCHAR(255) NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)"
+	createUserQuery      = "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id, created_at, updated_at"
+	updateUserQuery      = "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = now() WHERE id = $1 RETURNING updated_at"
+	deleteUserQuery      = "DELETE FROM users WHERE id = $1"
+	getUserByIDQuery     = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE id = $1"
+	getUserByUUIDQuery   = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE uuid = $1"
+	getAllUsersQuery     = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users"
+	getUserByPhoneQuery  = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE phone = $1"
+	countByPhoneQuery    = "SELECT count(*) FROM users WHERE phone = $1"
 )
 
-func (r *userRepository) GetUserByEmailOrPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
+func (r *userRepository) GetUserByPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
 	user := &model.User{}
-	row := tx.QueryRow(ctx, getUserByEmailOrPhoneQuery, username)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
+	row := tx.QueryRow(ctx, getUserByPhoneQuery, username)
+	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
-		return nil, fmt.Errorf("error getting user by email or phone: %w", err)
+		return nil, fmt.Errorf("error getting user by phone: %w", err)
 	}
 	return user, nil
 }
 
-func (r *userRepository) CountByEmailOrPassword(ctx context.Context, tx pgx.Tx, email string, phone string) error {
+func (r *userRepository) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error {
 	count := 0
-	row := tx.QueryRow(ctx, countByEmailOrPasswordQuery, email, phone)
+	row := tx.QueryRow(ctx, countByPhoneQuery, phone)
 	err := row.Scan(&count)
 	if err != nil {
 		return fmt.Errorf("error getting user count: %w", err)
@@ -67,7 +67,7 @@ func (r *userRepository) TCreate(ctx context.Context, tx pgx.Tx, user *model.Use
 		updatedAt time.Time
 	)
 	user.UUID = uuid.New().String()
-	row := tx.QueryRow(ctx, createUserQuery, user.UUID, user.Name, user.Role, user.Email, user.Phone)
+	row := tx.QueryRow(ctx, createUserQuery, user.UUID, user.Name, user.Role, user.Phone)
 	err := row.Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		return fmt.Errorf("error creating user: %w", err)
@@ -83,7 +83,7 @@ func (r *userRepository) TUpdate(ctx context.Context, tx pgx.Tx, user *model.Use
 	var (
 		updatedAt time.Time
 	)
-	row := tx.QueryRow(ctx, updateUserQuery, user.ID, user.Name, user.Role, user.Email, user.Phone)
+	row := tx.QueryRow(ctx, updateUserQuery, user.ID, user.Name, user.Role, user.Phone)
 	err := row.Scan(&updatedAt)
 	if err != nil {
 		return fmt.Errorf("error updating user: %w", err)
@@ -104,7 +104,7 @@ func (r *userRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*mo
 	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByIDQuery, id)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
+	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
@@ -115,7 +115,7 @@ func (r *userRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string)
 	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByUUIDQuery, uuid)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
+	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("error getting user: %w", err)
 	}
@@ -133,7 +133,7 @@ func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User,
 
 	for rows.Next() {
 		var u model.User
-		err := rows.Scan(&u.ID, &u.UUID, &u.Name, &u.Role, &u.Email, &u.Phone, &u.CreatedAt, &u.UpdatedAt)
+		err := rows.Scan(&u.ID, &u.UUID, &u.Name, &u.Role, &u.Phone, &u.CreatedAt, &u.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("error getting user: %w", err)
 		}

@@ -34,7 +34,7 @@ func (s *authService) Login(ctx context.Context, username string, password strin
 		return nil, status.Errorf(codes.Internal, "failed to begin transaction: %v", err)
 	}
 	defer tx.Rollback(ctx)
-	user, err := s.userRepo.GetUserByEmailOrPhone(ctx, tx, username)
+	user, err := s.userRepo.GetUserByPhone(ctx, tx, username)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
 	}

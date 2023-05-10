@@ -10,7 +10,6 @@ message User {
     string uuid = 1;
     string name = 2;
     int64 role = 3;
-    string email = 4;
     string phone = 5;
     google.protobuf.Timestamp created_at = 6;
     google.protobuf.Timestamp updated_at = 7;
@@ -18,7 +17,6 @@ message User {
 
 message UserCreateRequest {
     string name = 1;
-    string email = 2;
     string phone = 3;
     string password = 4;
 }
@@ -37,7 +35,6 @@ message UserAdminCreatedResponse {
 message UserUpdateRequest {
     string uuid = 1;
     string name = 2;
-    string email = 3;
     string phone = 4;
 }
 message UserUpdateResponse {
