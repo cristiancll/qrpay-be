@@ -21,7 +21,7 @@ type TGetterByUUID[E any] interface {
 	TGetByUUID(context.Context, pgx.Tx, string) (*E, error)
 }
 type TGetterAll[E any] interface {
-	TGetAll(context.Context, pgx.Tx) ([]E, error)
+	TGetAll(context.Context, pgx.Tx) ([]*E, error)
 }
 
 type Creater[E any] interface {
@@ -40,7 +40,7 @@ type GetterByUUID[E any] interface {
 	GetByUUID(context.Context, string) (*E, error)
 }
 type GetterAll[E any] interface {
-	GetAll(context.Context) ([]E, error)
+	GetAll(context.Context) ([]*E, error)
 }
 
 type Migrater interface {

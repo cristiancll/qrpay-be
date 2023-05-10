@@ -13,14 +13,13 @@ import (
 
 type WhatsAppRepository interface {
 	Migrater
-	CRUDer[model.WhatsApp]
+	Updater[model.WhatsApp]
+	Deleter[model.WhatsApp]
 	TCreater[model.WhatsApp]
+	TGetterByUUID[model.WhatsApp]
+	TGetterAll[model.WhatsApp]
 	DeleteByQR(ctx context.Context, code string) error
 	CreateFromQR(ctx context.Context, code string) (*model.WhatsApp, error)
-}
-
-type whatsAppRepository struct {
-	db *pgxpool.Pool
 }
 
 func NewWhatsAppRepository(db *pgxpool.Pool) WhatsAppRepository {
@@ -61,18 +60,8 @@ const (
 	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapp WHERE qr = $1`
 )
 
-func (r *whatsAppRepository) Create(ctx context.Context, whats *model.WhatsApp) error {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("error committing transaction: %w", err)
-	}
-	return status.Error(codes.Unimplemented, "method GetAll not implemented")
+type whatsAppRepository struct {
+	db *pgxpool.Pool
 }
 
 func (r *whatsAppRepository) TCreate(ctx context.Context, tx pgx.Tx, whats *model.WhatsApp) error {
@@ -80,9 +69,38 @@ func (r *whatsAppRepository) TCreate(ctx context.Context, tx pgx.Tx, whats *mode
 	row := tx.QueryRow(ctx, createWhatsappQuery, whats.UUID, whats.QR)
 	err := row.Scan(&whats.ID, &whats.CreatedAt, &whats.UpdatedAt)
 	if err != nil {
-		return fmt.Errorf("error scanning row: %w", err)
+		return fmt.Errorf("error scanning whatsapp: %w", err)
 	}
-	return status.Error(codes.Unimplemented, "method GetAll not implemented")
+	return nil
+}
+
+func (r *whatsAppRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.WhatsApp, error) {
+	row := tx.QueryRow(ctx, getWhatsappByUUIDQuery, uuid)
+	whats := &model.WhatsApp{}
+	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("error scanning whatsapp: %w", err)
+	}
+	return whats, nil
+}
+
+func (r *whatsAppRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.WhatsApp, error) {
+	rows, err := tx.Query(ctx, getAllWhatsappQuery)
+	if err != nil {
+		return nil, fmt.Errorf("error getting all whatsapp: %w", err)
+	}
+	defer rows.Close()
+
+	whatsList := make([]*model.WhatsApp, 0)
+	for rows.Next() {
+		w := &model.WhatsApp{}
+		err = rows.Scan(&w.ID, &w.UUID, &w.QR, &w.Phone, &w.Active, &w.Banned, &w.CreatedAt, &w.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning whatsapp: %w", err)
+		}
+		whatsList = append(whatsList, w)
+	}
+	return whatsList, nil
 }
 
 func (r *whatsAppRepository) Update(ctx context.Context, whats *model.WhatsApp) error {
@@ -91,6 +109,11 @@ func (r *whatsAppRepository) Update(ctx context.Context, whats *model.WhatsApp) 
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Active, whats.Banned)
+	if err != nil {
+		return fmt.Errorf("error updating whatsapp: %w", err)
+	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
@@ -106,53 +129,16 @@ func (r *whatsAppRepository) Delete(ctx context.Context, whats *model.WhatsApp) 
 	}
 	defer tx.Rollback(ctx)
 
+	_, err = tx.Exec(ctx, deleteWhatsappQuery, whats.ID)
+	if err != nil {
+		return fmt.Errorf("error deleting whatsapp: %w", err)
+	}
+
 	err = tx.Commit(ctx)
 	if err != nil {
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
 	return status.Error(codes.Unimplemented, "method GetAll not implemented")
-}
-
-func (r *whatsAppRepository) GetById(ctx context.Context, id int64) (*model.WhatsApp, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error committing transaction: %w", err)
-	}
-	return nil, status.Error(codes.Unimplemented, "method GetAll not implemented")
-}
-
-func (r *whatsAppRepository) GetByUUID(ctx context.Context, uuid string) (*model.WhatsApp, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error committing transaction: %w", err)
-	}
-	return nil, status.Error(codes.Unimplemented, "method GetAll not implemented")
-}
-
-func (r *whatsAppRepository) GetAll(ctx context.Context) ([]model.WhatsApp, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error starting transaction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error committing transaction: %w", err)
-	}
-	return nil, status.Error(codes.Unimplemented, "method GetAll not implemented")
 }
 
 func (r *whatsAppRepository) DeleteByQR(ctx context.Context, qrCode string) error {

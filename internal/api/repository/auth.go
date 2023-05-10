@@ -84,7 +84,7 @@ func (r *authRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string)
 	return nil, status.Error(codes.Unimplemented, "method not implemented")
 }
 
-func (r *authRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]model.Auth, error) {
+func (r *authRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Auth, error) {
 	return nil, status.Error(codes.Unimplemented, "method not implemented")
 }
 

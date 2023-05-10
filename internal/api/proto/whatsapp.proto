@@ -21,13 +21,13 @@ message WhatsAppGetRequest {
 }
 
 message WhatsAppGetResponse {
-  WhatsApp data = 1;
+  WhatsApp WhatsApp = 1;
 }
 
 message VoidRequest { }
 
 message WhatsAppListResponse {
-  repeated WhatsApp data = 1;
+  repeated WhatsApp WhatsAppList = 1;
 }
 
 service WhatsAppService {

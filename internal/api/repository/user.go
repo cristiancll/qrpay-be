@@ -28,7 +28,7 @@ func NewUserRepository(db *pgxpool.Pool) UserRepository {
 const (
 	createUserTableQuery        = "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, uuid VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, role INT NOT NULL, email VARCHAR(255) NOT NULL, phone VARCHAR(255) NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)"
 	createUserQuery             = "INSERT INTO users (uuid, name, role, email, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, now(), now()) RETURNING id, created_at, updated_at"
-	updateUserQuery             = "UPDATE users SET name = $2, role = $3, email = $4, phone = $5, updated_at = now() WHERE id = $1"
+	updateUserQuery             = "UPDATE users SET name = $2, role = $3, email = $4, phone = $5, updated_at = now() WHERE id = $1 RETURNING updated_at"
 	deleteUserQuery             = "DELETE FROM users WHERE id = $1"
 	getUserByIDQuery            = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE id = $1"
 	getUserByUUIDQuery          = "SELECT id, uuid, name, role, email, phone, created_at, updated_at FROM users WHERE uuid = $1"
@@ -122,8 +122,8 @@ func (r *userRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string)
 	return user, nil
 }
 
-func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]model.User, error) {
-	var users []model.User
+func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User, error) {
+	var users []*model.User
 
 	rows, err := tx.Query(ctx, getAllUsersQuery)
 	if err != nil {
@@ -132,12 +132,12 @@ func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]model.User, 
 	defer rows.Close()
 
 	for rows.Next() {
-		var user model.User
-		err := rows.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Email, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
+		var u model.User
+		err := rows.Scan(&u.ID, &u.UUID, &u.Name, &u.Role, &u.Email, &u.Phone, &u.CreatedAt, &u.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("error getting user: %w", err)
 		}
-		users = append(users, user)
+		users = append(users, &u)
 	}
 	return users, nil
 }

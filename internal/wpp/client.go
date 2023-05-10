@@ -9,6 +9,7 @@ import (
 	_ "github.com/lib/pq"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
+	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 
 	//_ "github.com/glebarez/go-sqlite"
@@ -39,10 +40,10 @@ type whatsAppClient struct {
 }
 
 func New(repo repository.WhatsAppRepository) (WhatsAppClient, error) {
-	//dbLog := waLog.Stdout("Database", "DEBUG", true)
+	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	wc := configs.Get().WhatsApp
 	url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", wc.Username, wc.Password, wc.Host, wc.Port, wc.Name)
-	container, err := sqlstore.New("postgres", url, nil)
+	container, err := sqlstore.New("postgres", url, dbLog)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +52,8 @@ func New(repo repository.WhatsAppRepository) (WhatsAppClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	//clientLog := waLog.Stdout("Client", "DEBUG", true)
-	client := whatsmeow.NewClient(device, nil)
+	clientLog := waLog.Stdout("Client", "DEBUG", true)
+	client := whatsmeow.NewClient(device, clientLog)
 
 	return &whatsAppClient{
 		repo:      repo,
@@ -60,12 +61,14 @@ func New(repo repository.WhatsAppRepository) (WhatsAppClient, error) {
 		client:    client,
 		device:    device,
 		ctx:       context.Background(),
+		whatsapp:  &model.WhatsApp{},
 	}, nil
 }
 
 func (c *whatsAppClient) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsmeow.QRChannelItem) {
 	var previousCode string
 	for evt := range qrChan {
+		var err error
 		if evt.Event != "code" {
 			break
 		}
@@ -74,9 +77,16 @@ func (c *whatsAppClient) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsm
 			continue
 		}
 		if previousCode != "" {
-			c.repo.DeleteByQR(ctx, previousCode)
+			err = c.repo.DeleteByQR(ctx, previousCode)
+			if err != nil {
+				// TODO: log error
+			}
 		}
-		c.repo.CreateFromQR(ctx, newQRCode)
+
+		c.whatsapp, err = c.repo.CreateFromQR(ctx, newQRCode)
+		if err != nil {
+			// TODO: log error
+		}
 		fmt.Println(newQRCode)
 		previousCode = newQRCode
 	}
