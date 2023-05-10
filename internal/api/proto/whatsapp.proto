@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message WhatsApp {
+  string uuid = 1;
+  string qr = 2;
+  string phone = 3;
+  bool active = 4;
+  bool banned = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message WhatsAppGetRequest {
+  string uuid = 1;
+}
+
+message WhatsAppGetResponse {
+  WhatsApp data = 1;
+}
+
+message VoidRequest { }
+
+message WhatsAppListResponse {
+  repeated WhatsApp data = 1;
+}
+
+service WhatsAppService {
+  rpc Get(WhatsAppGetRequest) returns (WhatsAppGetResponse);
+  rpc List(VoidRequest) returns (WhatsAppListResponse);
+}
