@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/common"
 	"github.com/cristiancll/qrpay-be/internal/configs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
@@ -158,8 +159,6 @@ func (s *whatsAppSystem) eventHandler(evt interface{}) {
 				continue
 			}
 		}
-	default:
-		fmt.Println("Unknown event!", v)
 	}
 }
 
@@ -215,8 +214,8 @@ func (s *whatsAppSystem) Stop() {
 }
 
 func (s *whatsAppSystem) SendText(user *model.User, msg string) {
-
-	to := types.NewJID(user.Phone, types.DefaultUserServer)
+	sanitizedPhone := common.SanitizePhone(user.Phone)
+	to := types.NewJID(sanitizedPhone, types.DefaultUserServer)
 	message := &waProto.Message{
 		Conversation: proto.String(msg),
 	}
@@ -255,8 +254,8 @@ func (s *whatsAppSystem) SendImage(user *model.User, msg string) {
 		FileSha256:    res.FileSHA256,
 		FileLength:    &res.FileLength,
 	}
-
-	to := types.NewJID(user.Phone, types.DefaultUserServer)
+	sanitizedPhone := common.SanitizePhone(user.Phone)
+	to := types.NewJID(sanitizedPhone, types.DefaultUserServer)
 	message := &waProto.Message{
 		ImageMessage: imageMsg,
 	}

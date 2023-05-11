@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/common"
 	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,13 +31,14 @@ func NewAuthService(pool *pgxpool.Pool, r repository.AuthRepository, userRepo re
 	}
 }
 
-func (s *authService) Login(ctx context.Context, username string, password string) (*model.User, *model.Auth, error) {
+func (s *authService) Login(ctx context.Context, phone string, password string) (*model.User, *model.Auth, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
-	user, err := s.userRepo.GetUserByPhone(ctx, tx, username)
+	sanitizedPhone := common.SanitizePhone(phone)
+	user, err := s.userRepo.GetUserByPhone(ctx, tx, sanitizedPhone)
 	if err != nil {
 		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
 	}

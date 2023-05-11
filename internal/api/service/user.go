@@ -46,7 +46,7 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 	}
 	defer tx.Rollback(ctx)
 
-	user.Phone = common.FormatPhone(user.Phone)
+	user.Phone = common.SanitizePhone(user.Phone)
 
 	err = s.repo.CountByPhone(ctx, tx, user.Phone)
 	if err != nil {
@@ -97,7 +97,7 @@ func (s *userService) Update(ctx context.Context, user *model.User, password str
 	}
 	defer tx.Rollback(ctx)
 
-	user.Phone = common.FormatPhone(user.Phone)
+	user.Phone = common.SanitizePhone(user.Phone)
 
 	existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
 	if err != nil {
