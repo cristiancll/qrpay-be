@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type AuthServiceClient interface {
 	Login(ctx context.Context, in *AuthLoginRequest, opts ...grpc.CallOption) (*AuthLoginResponse, error)
 	Logout(ctx context.Context, in *AuthVoid, opts ...grpc.CallOption) (*AuthVoid, error)
+	Heartbeat(ctx context.Context, in *AuthVoid, opts ...grpc.CallOption) (*AuthHeartbeatResponse, error)
 }
 
 type authServiceClient struct {
@@ -52,12 +53,22 @@ func (c *authServiceClient) Logout(ctx context.Context, in *AuthVoid, opts ...gr
 	return out, nil
 }
 
+func (c *authServiceClient) Heartbeat(ctx context.Context, in *AuthVoid, opts ...grpc.CallOption) (*AuthHeartbeatResponse, error) {
+	out := new(AuthHeartbeatResponse)
+	err := c.cc.Invoke(ctx, "/proto.AuthService/Heartbeat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility
 type AuthServiceServer interface {
 	Login(context.Context, *AuthLoginRequest) (*AuthLoginResponse, error)
 	Logout(context.Context, *AuthVoid) (*AuthVoid, error)
+	Heartbeat(context.Context, *AuthVoid) (*AuthHeartbeatResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedAuthServiceServer) Login(context.Context, *AuthLoginRequest) 
 }
 func (UnimplementedAuthServiceServer) Logout(context.Context, *AuthVoid) (*AuthVoid, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Logout not implemented")
+}
+func (UnimplementedAuthServiceServer) Heartbeat(context.Context, *AuthVoid) (*AuthHeartbeatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 
@@ -120,6 +134,24 @@ func _AuthService_Logout_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AuthVoid)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).Heartbeat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.AuthService/Heartbeat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).Heartbeat(ctx, req.(*AuthVoid))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Logout",
 			Handler:    _AuthService_Logout_Handler,
+		},
+		{
+			MethodName: "Heartbeat",
+			Handler:    _AuthService_Heartbeat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

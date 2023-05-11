@@ -36,6 +36,7 @@ message UserUpdateRequest {
     string uuid = 1;
     string name = 2;
     string phone = 4;
+    string password = 5;
 }
 message UserUpdateResponse {
     User user = 1;
