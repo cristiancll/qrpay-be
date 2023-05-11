@@ -22,7 +22,7 @@
     "key_id": "qrpay",
     "signing_algorithm": "ES256",
     "expires_in": "30m",
-    "refresh_threshold": "5m",
+    "refresh_threshold": "10m",
     "issuer": "qrpay"
   }
 }

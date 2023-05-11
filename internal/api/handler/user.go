@@ -5,6 +5,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/proto"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -31,13 +32,13 @@ func NewUserHandler(s service.UserService) UserHandler {
 
 func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
 	if req.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, "Name is required")
+		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
 	}
 	if req.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, "Password is required")
+		return nil, status.Error(codes.InvalidArgument, errors.PASSWORD_REQUIRED)
 	}
 	if req.Phone == "" {
-		return nil, status.Error(codes.InvalidArgument, "Phone is required")
+		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
 	}
 	user := &model.User{
 		Name:  req.Name,
@@ -73,8 +74,35 @@ func (h *userHandler) List(ctx context.Context, req *proto.UserListRequest) (*pr
 }
 
 func (h *userHandler) Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error) {
-	res := &proto.UserUpdateResponse{}
-
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+	}
+	if req.Phone == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
+	}
+	if req.Password == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.PASSWORD_REQUIRED)
+	}
+	UUID := ctx.Value("UUID").(string)
+	user := &model.User{
+		UUID:  UUID,
+		Name:  req.Name,
+		Phone: req.Phone,
+	}
+	err := h.service.Update(ctx, user, req.Password)
+	if err != nil {
+		return nil, err
+	}
+	res := &proto.UserUpdateResponse{
+		User: &proto.User{
+			Uuid:      user.UUID,
+			Name:      user.Name,
+			Role:      int64(user.Role),
+			Phone:     user.Phone,
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		},
+	}
 	return res, nil
 }
 

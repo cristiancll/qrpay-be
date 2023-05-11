@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/proto"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -26,7 +27,7 @@ func NewWhatsAppHandler(s service.WhatsAppService) WhatsAppHandler {
 
 func (h *whatsAppHandler) Get(ctx context.Context, req *proto.WhatsAppGetRequest) (*proto.WhatsAppGetResponse, error) {
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, "UUID is required")
+		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
 	}
 	whats, err := h.service.Get(ctx, req.Uuid)
 	if err != nil {
@@ -46,7 +47,7 @@ func (h *whatsAppHandler) Get(ctx context.Context, req *proto.WhatsAppGetRequest
 	return res, nil
 }
 
-func (h *whatsAppHandler) List(ctx context.Context, req *proto.VoidRequest) (*proto.WhatsAppListResponse, error) {
+func (h *whatsAppHandler) List(ctx context.Context, _ *proto.VoidRequest) (*proto.WhatsAppListResponse, error) {
 	whatsList, err := h.service.GetAll(ctx)
 	if err != nil {
 		return nil, err

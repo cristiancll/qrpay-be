@@ -5,6 +5,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/common"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/cristiancll/qrpay-be/internal/wpp"
@@ -17,7 +18,7 @@ type UserService interface {
 	Create(ctx context.Context, user *model.User, password string) error
 	Get(ctx context.Context, uuid string) (*model.User, error)
 	List(ctx context.Context) ([]model.User, error)
-	Update(ctx context.Context, user *model.User) error
+	Update(ctx context.Context, user *model.User, password string) error
 	Delete(ctx context.Context, uuid string) error
 	AdminCreated(ctx context.Context, user *model.User) error
 }
@@ -26,10 +27,10 @@ type userService struct {
 	pool     *pgxpool.Pool
 	repo     repository.UserRepository
 	authRepo repository.AuthRepository
-	wpp      wpp.WhatsAppClient
+	wpp      wpp.WhatsAppSystem
 }
 
-func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppClient, r repository.UserRepository, authRepo repository.AuthRepository) UserService {
+func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.UserRepository, authRepo repository.AuthRepository) UserService {
 	return &userService{
 		pool:     pool,
 		repo:     r,
@@ -41,48 +42,41 @@ func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppClient, r repository.Use
 func (s *userService) Create(ctx context.Context, user *model.User, password string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to begin transaction: %v", err)
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
 
-	user.Phone = common.RemoveNonNumeric(user.Phone)
+	user.Phone = common.FormatPhone(user.Phone)
 
 	err = s.repo.CountByPhone(ctx, tx, user.Phone)
 	if err != nil {
-		return status.Error(codes.AlreadyExists, err.Error())
+		return status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
 	}
 
 	user.Role = roles.Client
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to create user: %v", err)
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	password, err = security.HashPassword(password)
+	passwordHash, err := security.HashPassword(password)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to hash password: %v", err)
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	auth := &model.Auth{
 		UserID:   user.ID,
-		Password: password,
+		Password: passwordHash,
 		Verified: false,
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to create auth: %v", err)
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Errorf(codes.Internal, "failed to commit transaction: %v", err)
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	err = s.wpp.SendText(user, user.WelcomeMessage())
-	if err != nil {
-		// TODO: log error
-	}
-	err = s.wpp.SendImage(user)
-	if err != nil {
-		// TODO: log error
-	}
+	go s.wpp.SendImage(user, user.WelcomeMessage())
 	return nil
 }
 
@@ -96,9 +90,45 @@ func (s *userService) List(ctx context.Context) ([]model.User, error) {
 	panic("implement me")
 }
 
-func (s *userService) Update(ctx context.Context, user *model.User) error {
-	//TODO implement me
-	panic("implement me")
+func (s *userService) Update(ctx context.Context, user *model.User, password string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	user.Phone = common.FormatPhone(user.Phone)
+
+	existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
+	if err != nil {
+		return err
+	}
+	if existing.UUID != user.UUID {
+		return status.Error(codes.PermissionDenied, errors.UNAUTHORIZED)
+	}
+
+	// Check if password is correct
+	auth, err := s.authRepo.TGetById(ctx, tx, existing.ID)
+	if err != nil {
+		return err
+	}
+	err = security.CheckPassword(auth.Password, password)
+	if err != nil {
+		return status.Error(codes.PermissionDenied, errors.INVALID_PASSWORD)
+	}
+
+	existing.Name = user.Name
+	existing.Phone = user.Phone
+	err = s.repo.TUpdate(ctx, tx, existing)
+	if err != nil {
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return nil
 }
 
 func (s *userService) Delete(ctx context.Context, uuid string) error {

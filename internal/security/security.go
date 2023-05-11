@@ -3,8 +3,8 @@ package security
 import (
 	"context"
 	"crypto/ecdsa"
-	"errors"
 	"github.com/cristiancll/qrpay-be/internal/configs"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
@@ -14,6 +14,11 @@ import (
 	"net/http"
 	"time"
 )
+
+type SubjectClaims struct {
+	UUID string `json:"uuid"`
+	Role string `json:"role"`
+}
 
 func HashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -31,12 +36,11 @@ func CheckPassword(hash string, password string) error {
 	return nil
 }
 
-func GenerateJWTToken(uuid string, privateKey *ecdsa.PrivateKey) (string, error) {
+func GenerateJWTToken(subject string, privateKey *ecdsa.PrivateKey) (string, error) {
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(time.Now().Add(configs.Get().JWT.GetExpiresIn())),
 		Issuer:    configs.Get().JWT.Issuer,
-		Subject:   uuid,
-		//Role:      role, // TODO: Add role to claims
+		Subject:   subject,
 	}
 
 	signingMethod := jwt.GetSigningMethod(configs.Get().JWT.SigningAlgorithm)
@@ -49,12 +53,12 @@ func VerifyJWTToken(tokenString string, publicKey *ecdsa.PublicKey) (*jwt.Regist
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		signingMethod := jwt.GetSigningMethod(configs.Get().JWT.SigningAlgorithm)
 		if token.Method != signingMethod {
-			return nil, errors.New("invalid signing method")
+			return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 		}
 
 		kid, ok := token.Header["kid"].(string)
 		if !ok || kid != configs.Get().JWT.KeyID {
-			return nil, errors.New("invalid key id")
+			return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 		}
 
 		return publicKey, nil
@@ -63,20 +67,19 @@ func VerifyJWTToken(tokenString string, publicKey *ecdsa.PublicKey) (*jwt.Regist
 	var refreshedToken string
 
 	if err != nil {
-		return nil, refreshedToken, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
+		return nil, refreshedToken, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok || !token.Valid {
-		return nil, refreshedToken, status.Errorf(codes.Unauthenticated, "invalid token")
+		return nil, refreshedToken, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 
 	now := time.Now().Unix()
 	expiresAt := claims.ExpiresAt.Time.Unix()
-	refreshTime := expiresAt - int64(configs.Get().JWT.GetExpiresIn().Seconds())
-
+	refreshTime := expiresAt - int64(configs.Get().JWT.GetRefreshThreshold().Seconds())
 	if now > expiresAt {
-		return nil, refreshedToken, status.Error(codes.Unauthenticated, "token has expired")
+		return nil, refreshedToken, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 
 	if now > refreshTime {
@@ -100,7 +103,7 @@ func UpdateJWTCookie(ctx context.Context, newToken string) error {
 	headers := metadata.Pairs("Set-Cookie", cookie.String())
 	err := grpc.SendHeader(ctx, headers)
 	if err != nil {
-		return status.Errorf(codes.Internal, "Error sending cookie: %v", err)
+		return status.Error(codes.Internal, errors.CONNECTION_ERROR)
 	}
 	return nil
 }
@@ -116,7 +119,7 @@ func DeleteJWTCookie(ctx context.Context) error {
 	headers := metadata.Pairs("Set-Cookie", cookie.String())
 	err := grpc.SendHeader(ctx, headers)
 	if err != nil {
-		return status.Errorf(codes.Internal, "Error sending cookie: %v", err)
+		return status.Error(codes.Internal, errors.CONNECTION_ERROR)
 	}
 	return nil
 }

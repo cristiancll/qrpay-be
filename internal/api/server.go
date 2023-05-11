@@ -72,21 +72,26 @@ func (s *Server) initializeAPI() error {
 		return fmt.Errorf("unable to migrate whatsapp repository: %v", err)
 	}
 
-	// Create WhatsApp Client
-	whats, err := wpp.New(wppRepo)
+	verifiedCache, err := userRepo.GetVerifiedList(s.context)
+	if err != nil {
+		return fmt.Errorf("unable to get verified list: %v", err)
+	}
+
+	// Create WhatsApp System
+	wppSystem, err := wpp.New(s.db, wppRepo, userRepo, authRepo, verifiedCache)
 	if err != nil {
 		return fmt.Errorf("unable to start whatsapp client: %v", err)
 	}
-	err = whats.Start()
+	err = wppSystem.Start()
 	if err != nil {
 		return fmt.Errorf("unable to start whatsapp client: %v", err)
 	}
-	defer whats.Stop()
+	defer wppSystem.Stop()
 
 	// Create Services
-	userService := service.NewUserService(s.db, whats, userRepo, authRepo)
+	userService := service.NewUserService(s.db, wppSystem, userRepo, authRepo)
 	authService := service.NewAuthService(s.db, authRepo, userRepo)
-	wppService := service.NewWhatsAppService(s.db, whats, wppRepo)
+	wppService := service.NewWhatsAppService(s.db, wppSystem, wppRepo)
 
 	// Create Handlers
 	userHandler := handler.NewUserHandler(userService)

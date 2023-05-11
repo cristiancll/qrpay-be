@@ -17,9 +17,30 @@ type User struct {
 }
 
 func (u *User) WelcomeMessage() string {
-	return fmt.Sprintf("Seja bem vindo ao QRPay, %s!", u.Name)
+	format := `Olá *%s*, Agora você faz parte do sistema *QRPay*!
+
+O QR Code acima é o seu código de acesso ao sistema. Guarde-o com cuidado, pois ele é único e intransferível.
+
+Apresente o seu QR Code para o operador do caixa para carregar o seu saldo.
+
+Apresente o seu QR Code para o balconista para retirar os seus pedidos.
+
+Para confirmar o seu cadastro, responda *CONFIRMA* para este número.
+`
+	return fmt.Sprintf(format, u.Name)
 }
 
-func (u *User) AccessMessage() string {
-	return fmt.Sprintf("Seu código de acesso é: %s", u.UUID)
+func (u *User) ConfirmMessage() string {
+	format := `Olá *%s*, o seu cadastro foi confirmado com sucesso!`
+	return fmt.Sprintf(format, u.Name)
+}
+
+func (u *User) OrderMessage() string {
+	format := `Voce fez um pedido`
+	return format
+}
+
+func (u *User) BalanceMessage() string {
+	format := `O seu saldo de pedidos: `
+	return format
 }

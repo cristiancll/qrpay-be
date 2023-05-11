@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
@@ -11,7 +12,8 @@ import (
 )
 
 type AuthService interface {
-	Login(ctx context.Context, username string, password string) (*model.User, error)
+	Login(ctx context.Context, username string, password string) (*model.User, *model.Auth, error)
+	Heartbeat(ctx context.Context) (*model.User, *model.Auth, error)
 }
 
 type authService struct {
@@ -28,36 +30,55 @@ func NewAuthService(pool *pgxpool.Pool, r repository.AuthRepository, userRepo re
 	}
 }
 
-func (s *authService) Login(ctx context.Context, username string, password string) (*model.User, error) {
+func (s *authService) Login(ctx context.Context, username string, password string) (*model.User, *model.Auth, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to begin transaction: %v", err)
+		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
 	user, err := s.userRepo.GetUserByPhone(ctx, tx, username)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "user not found: %v", err)
+		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
 	}
 	auth, err := s.repo.TGetById(ctx, tx, user.ID)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "auth not found: %v", err)
+		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
 	}
 	if !auth.Verified {
-		return nil, status.Error(codes.PermissionDenied, "user not verified")
+		return nil, nil, status.Error(codes.PermissionDenied, errors.VERIFICATION_ERROR)
 	}
 	if auth.Disabled {
-		return nil, status.Error(codes.PermissionDenied, "user disabled")
-	}
-	if auth.Locked {
-		return nil, status.Error(codes.PermissionDenied, "user locked")
+		return nil, nil, status.Error(codes.PermissionDenied, errors.DISABLED_USER)
 	}
 	err = security.CheckPassword(auth.Password, password)
 	if err != nil {
-		return nil, status.Error(codes.PermissionDenied, "invalid password")
+		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to commit transaction: %v", err)
+		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	return user, nil
+	return user, auth, nil
+}
+
+func (s *authService) Heartbeat(ctx context.Context) (*model.User, *model.Auth, error) {
+	UUID := ctx.Value("UUID").(string)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+	user, err := s.userRepo.TGetByUUID(ctx, tx, UUID)
+	if err != nil {
+		return nil, nil, err
+	}
+	auth, err := s.repo.TGetById(ctx, tx, user.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return user, auth, nil
 }
