@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "user.proto";
+
+message Order {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  int64 amount = 4;
+  bool paid = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+service OrderService {
+  rpc Create(OrderCreateRequest) returns (OrderCreateResponse);
+  rpc Get(OrderGetRequest) returns (OrderGetResponse);
+  rpc List(OrderListRequest) returns (OrderListResponse);
+  rpc Update(OrderUpdateRequest) returns (OrderUpdateResponse);
+  rpc Delete(OrderDeleteRequest) returns (OrderDeleteResponse);
+}
+
+message OrderCreateRequest {
+  User user = 1;
+  User seller = 2;
+  int64 amount = 3;
+}
+message OrderCreateResponse {
+  Order order = 1;
+}
+
+message OrderGetRequest {
+  string uuid = 1;
+}
+message OrderGetResponse {
+  Order order = 1;
+}
+
+message OrderListRequest {}
+
+message OrderListResponse {
+  repeated Order orders = 1;
+}
+
+message OrderUpdateRequest {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  int64 amount = 4;
+  bool paid = 5;
+}
+message OrderUpdateResponse {
+  Order order = 1;
+}
+
+message OrderDeleteRequest {
+  string uuid = 1;
+}
+message OrderDeleteResponse {}
+
