@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "user.proto";
+
+message OperationLog {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  string operation = 4;
+  int64 operation_id = 5;
+  string metadata = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+service OperationLogService {
+  rpc Create(OperationLogCreateRequest) returns (OperationLogCreateResponse);
+  rpc Get(OperationLogGetRequest) returns (OperationLogGetResponse);
+  rpc List(OperationLogListRequest) returns (OperationLogListResponse);
+  rpc Update(OperationLogUpdateRequest) returns (OperationLogUpdateResponse);
+  rpc Delete(OperationLogDeleteRequest) returns (OperationLogDeleteResponse);
+}
+
+message OperationLogCreateRequest {
+  User user = 1;
+  User seller = 2;
+  string operation = 3;
+  int64 operation_id = 4;
+  string metadata = 5;
+}
+
+message OperationLogCreateResponse {
+  OperationLog operation_log = 1;
+}
+
+message OperationLogGetRequest {
+  string uuid = 1;
+}
+message OperationLogGetResponse {
+  OperationLog operation_log = 1;
+}
+
+message OperationLogListRequest {}
+
+message OperationLogListResponse {
+  repeated OperationLog operation_logs = 1;
+}
+
+message OperationLogUpdateRequest {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  string operation = 4;
+  int64 operation_id = 5;
+  string metadata = 6;
+}
+
+message OperationLogUpdateResponse {
+  OperationLog operation_log = 1;
+}
+
+message OperationLogDeleteRequest {
+  string uuid = 1;
+}
+message OperationLogDeleteResponse {}
