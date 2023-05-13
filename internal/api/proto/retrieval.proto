@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "user.proto";
+import "orderItem.proto";
+
+
+message Retrieval {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  OrderItem order_item = 4;
+  int64 quantity = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+service RetrievalService {
+  rpc Create(RetrievalCreateRequest) returns (RetrievalCreateResponse);
+  rpc Get(RetrievalGetRequest) returns (RetrievalGetResponse);
+  rpc List(RetrievalListRequest) returns (RetrievalListResponse);
+  rpc Update(RetrievalUpdateRequest) returns (RetrievalUpdateResponse);
+  rpc Delete(RetrievalDeleteRequest) returns (RetrievalDeleteResponse);
+}
+
+message RetrievalCreateRequest {
+  User user = 1;
+  User seller = 2;
+  OrderItem order_item = 3;
+  int64 quantity = 4;
+}
+message RetrievalCreateResponse {
+  Retrieval retrieval = 1;
+}
+
+message RetrievalGetRequest {
+  string uuid = 1;
+}
+message RetrievalGetResponse {
+  Retrieval retrieval = 1;
+}
+
+message RetrievalListRequest {
+}
+
+message RetrievalListResponse {
+  repeated Retrieval retrievals = 1;
+}
+
+message RetrievalUpdateRequest {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  OrderItem order_item = 4;
+  int64 quantity = 5;
+}
+
+message RetrievalUpdateResponse {
+  Retrieval retrieval = 1;
+}
+
+message RetrievalDeleteRequest {
+  string uuid = 1;
+}
+
+message RetrievalDeleteResponse {
+}
