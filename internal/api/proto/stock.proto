@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "sku.proto";
+
+message Stock {
+  string uuid = 1;
+  SKU sku = 2;
+  int64 quantity = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+service StockService {
+  rpc Create(StockCreateRequest) returns (StockCreateResponse);
+  rpc Update(StockUpdateRequest) returns (StockUpdateResponse);
+  rpc Delete(StockDeleteRequest) returns (StockDeleteResponse);
+  rpc Get(StockGetRequest) returns (StockGetResponse);
+  rpc List(StockListRequest) returns (StockListResponse);
+}
+
+message StockCreateRequest {
+  SKU sku = 1;
+  int64 quantity = 2;
+}
+message StockCreateResponse {
+  Stock stock = 1;
+}
+
+message StockUpdateRequest {
+  string uuid = 1;
+  SKU sku = 2;
+  int64 quantity = 3;
+}
+message StockUpdateResponse {
+  Stock stock = 1;
+}
+
+message StockDeleteRequest {
+  string uuid = 1;
+}
+message StockDeleteResponse {}
+
+message StockGetRequest {
+  string uuid = 1;
+}
+message StockGetResponse {
+  Stock stock = 1;
+}
+
+message StockListRequest {}
+
+message StockListResponse {
+  repeated Stock stocks = 1;
+}
