@@ -69,10 +69,10 @@ type KeyPair struct {
 }
 
 type Config struct {
-	Server   Server   `json:"SERVER"`
-	Database Database `json:"DB"`
-	JWT      JWT      `json:"JWT"`
-	WhatsApp WhatsApp `json:"WPP"`
+	Server   Server   `json:"server"`
+	Database Database `json:"db"`
+	JWT      JWT      `json:"jwt"`
+	WhatsApp WhatsApp `json:"wpp"`
 	Keys     Keys
 }
 

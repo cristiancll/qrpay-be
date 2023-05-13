@@ -3,9 +3,9 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
-	"github.com/cristiancll/qrpay-be/internal/configs"
 	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"google.golang.org/grpc/codes"

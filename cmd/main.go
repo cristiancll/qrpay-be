@@ -7,7 +7,7 @@ import (
 
 func main() {
 	var settingsPath string
-	flag.StringVar(&settingsPath, "settings", "./settings.json", "Path to settings file")
+	flag.StringVar(&settingsPath, "settings", "./configs/settings.json", "Path to settings file")
 	flag.Parse()
 	s := server.New(settingsPath)
 	err := s.Start()

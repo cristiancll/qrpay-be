@@ -3,10 +3,10 @@ package wpp
 import (
 	"context"
 	"fmt"
+	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/common"
-	"github.com/cristiancll/qrpay-be/internal/configs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
 	"github.com/mdp/qrterminal/v3"
@@ -50,7 +50,7 @@ type whatsAppSystem struct {
 
 func New(db *pgxpool.Pool, repo repository.WhatsAppRepository, userRepo repository.UserRepository, authRepo repository.AuthRepository, verifiedCache []string) (WhatsAppSystem, error) {
 	//dbLog := waLog.Stdout("Database", "DEBUG", true)
-	wc := configs.Get().WhatsApp
+	wc := configs.Get().Database
 	url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", wc.Username, wc.Password, wc.Host, wc.Port, wc.Name)
 	container, err := sqlstore.New("postgres", url, nil)
 	if err != nil {

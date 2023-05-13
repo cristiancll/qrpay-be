@@ -3,7 +3,7 @@ package security
 import (
 	"context"
 	"crypto/ecdsa"
-	"github.com/cristiancll/qrpay-be/internal/configs"
+	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
