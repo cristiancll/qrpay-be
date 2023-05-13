@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type OrderService interface {
+type Order interface {
 }
 
-type orderService struct {
+type order struct {
 	pool *pgxpool.Pool
-	repo repository.OrderRepository
+	repo repository.Order
 }
 
-func NewOrderService(pool *pgxpool.Pool, r repository.OrderRepository) OrderService {
-	return &orderService{
+func NewOrder(pool *pgxpool.Pool, r repository.Order) Order {
+	return &order{
 		pool: pool,
 		repo: r,
 	}

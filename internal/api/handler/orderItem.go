@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type OrderItemHandler interface {
+type OrderItem interface {
 	proto.OrderItemServiceServer
 }
 
-type orderItemHandler struct {
-	service service.OrderItemService
+type orderItem struct {
+	service service.OrderItem
 	proto.UnimplementedOrderItemServiceServer
 }
 
-func NewOrderItemHandler(s service.OrderItemService) OrderItemHandler {
-	return &orderItemHandler{service: s}
+func NewOrderItem(s service.OrderItem) OrderItem {
+	return &orderItem{service: s}
 }

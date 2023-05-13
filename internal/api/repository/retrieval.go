@@ -7,50 +7,50 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type RetrievalRepository interface {
+type Retrieval interface {
 	Migrater
 	TCRUDer[model.Retrieval]
 }
 
-type retrievalRepository struct {
+func NewRetrieval(db *pgxpool.Pool) Retrieval {
+	return &retrieval{db: db}
+}
+
+type retrieval struct {
 	db *pgxpool.Pool
 }
 
-func (r *retrievalRepository) Migrate(ctx context.Context) error {
+func (r *retrieval) Migrate(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TCreate(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
+func (r *retrieval) TCreate(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TUpdate(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
+func (r *retrieval) TUpdate(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TDelete(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
+func (r *retrieval) TDelete(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Retrieval, error) {
+func (r *retrieval) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Retrieval, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Retrieval, error) {
+func (r *retrieval) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Retrieval, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *retrievalRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Retrieval, error) {
+func (r *retrieval) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Retrieval, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func NewRetrievalRepository(db *pgxpool.Pool) RetrievalRepository {
-	return &retrievalRepository{db: db}
 }

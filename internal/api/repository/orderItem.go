@@ -7,50 +7,50 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type OrderItemRepository interface {
+type OrderItem interface {
 	Migrater
 	TCRUDer[model.OrderItem]
 }
 
-type orderItemRepository struct {
+type orderItem struct {
 	db *pgxpool.Pool
 }
 
-func (r *orderItemRepository) Migrate(ctx context.Context) error {
+func NewOrderItem(db *pgxpool.Pool) OrderItem {
+	return &orderItem{db: db}
+}
+
+func (r *orderItem) Migrate(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TCreate(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
+func (r *orderItem) TCreate(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TUpdate(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
+func (r *orderItem) TUpdate(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TDelete(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
+func (r *orderItem) TDelete(ctx context.Context, tx pgx.Tx, item *model.OrderItem) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.OrderItem, error) {
+func (r *orderItem) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.OrderItem, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.OrderItem, error) {
+func (r *orderItem) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.OrderItem, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *orderItemRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.OrderItem, error) {
+func (r *orderItem) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.OrderItem, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func NewOrderItemRepository(db *pgxpool.Pool) OrderItemRepository {
-	return &orderItemRepository{db: db}
 }

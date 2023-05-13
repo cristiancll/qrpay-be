@@ -34,9 +34,9 @@ type WhatsAppSystem interface {
 type whatsAppSystem struct {
 	db *pgxpool.Pool
 
-	repo     repository.WhatsAppRepository
-	authRepo repository.AuthRepository
-	userRepo repository.UserRepository
+	repo     repository.WhatsApp
+	authRepo repository.Auth
+	userRepo repository.User
 
 	container *sqlstore.Container
 	client    *whatsmeow.Client
@@ -48,7 +48,7 @@ type whatsAppSystem struct {
 	verifiedCache []string
 }
 
-func New(db *pgxpool.Pool, repo repository.WhatsAppRepository, userRepo repository.UserRepository, authRepo repository.AuthRepository, verifiedCache []string) (WhatsAppSystem, error) {
+func New(db *pgxpool.Pool, repo repository.WhatsApp, userRepo repository.User, authRepo repository.Auth, verifiedCache []string) (WhatsAppSystem, error) {
 	//dbLog := waLog.Stdout("Database", "DEBUG", true)
 	wc := configs.Get().Database
 	url := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", wc.Username, wc.Password, wc.Host, wc.Port, wc.Name)

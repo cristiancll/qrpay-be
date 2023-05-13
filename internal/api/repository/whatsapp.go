@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type WhatsAppRepository interface {
+type WhatsApp interface {
 	Migrater
 	Updater[model.WhatsApp]
 	Deleter[model.WhatsApp]
@@ -23,8 +23,12 @@ type WhatsAppRepository interface {
 	DisableAll(ctx context.Context) error
 }
 
-func NewWhatsAppRepository(db *pgxpool.Pool) WhatsAppRepository {
-	return &whatsAppRepository{db: db}
+type whatsApp struct {
+	db *pgxpool.Pool
+}
+
+func NewWhatsApp(db *pgxpool.Pool) WhatsApp {
+	return &whatsApp{db: db}
 }
 
 const (
@@ -53,11 +57,7 @@ const (
 	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapp WHERE qr = $1`
 )
 
-type whatsAppRepository struct {
-	db *pgxpool.Pool
-}
-
-func (r *whatsAppRepository) DisableAll(ctx context.Context) error {
+func (r *whatsApp) DisableAll(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, disableAllQuery)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -65,7 +65,7 @@ func (r *whatsAppRepository) DisableAll(ctx context.Context) error {
 	return nil
 }
 
-func (r *whatsAppRepository) TCreate(ctx context.Context, tx pgx.Tx, whats *model.WhatsApp) error {
+func (r *whatsApp) TCreate(ctx context.Context, tx pgx.Tx, whats *model.WhatsApp) error {
 	whats.UUID = uuid.New().String()
 	row := tx.QueryRow(ctx, createWhatsappQuery, whats.UUID, whats.QR)
 	err := row.Scan(&whats.ID, &whats.CreatedAt, &whats.UpdatedAt)
@@ -75,7 +75,7 @@ func (r *whatsAppRepository) TCreate(ctx context.Context, tx pgx.Tx, whats *mode
 	return nil
 }
 
-func (r *whatsAppRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.WhatsApp, error) {
+func (r *whatsApp) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.WhatsApp, error) {
 	row := tx.QueryRow(ctx, getWhatsappByUUIDQuery, uuid)
 	whats := &model.WhatsApp{}
 	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
@@ -87,7 +87,7 @@ func (r *whatsAppRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid str
 	return whats, nil
 }
 
-func (r *whatsAppRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.WhatsApp, error) {
+func (r *whatsApp) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.WhatsApp, error) {
 	rows, err := tx.Query(ctx, getAllWhatsappQuery)
 	if err == pgx.ErrNoRows {
 		return nil, status.Error(codes.NotFound, errors.NO_WHATSAPP_FOUND)
@@ -108,7 +108,7 @@ func (r *whatsAppRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.W
 	return whatsList, nil
 }
 
-func (r *whatsAppRepository) Update(ctx context.Context, whats *model.WhatsApp) error {
+func (r *whatsApp) Update(ctx context.Context, whats *model.WhatsApp) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -127,7 +127,7 @@ func (r *whatsAppRepository) Update(ctx context.Context, whats *model.WhatsApp) 
 	return status.Error(codes.Unimplemented, "method GetAll not implemented")
 }
 
-func (r *whatsAppRepository) Delete(ctx context.Context, whats *model.WhatsApp) error {
+func (r *whatsApp) Delete(ctx context.Context, whats *model.WhatsApp) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -146,7 +146,7 @@ func (r *whatsAppRepository) Delete(ctx context.Context, whats *model.WhatsApp) 
 	return status.Error(codes.Unimplemented, "method GetAll not implemented")
 }
 
-func (r *whatsAppRepository) DeleteByQR(ctx context.Context, qrCode string) error {
+func (r *whatsApp) DeleteByQR(ctx context.Context, qrCode string) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -165,7 +165,7 @@ func (r *whatsAppRepository) DeleteByQR(ctx context.Context, qrCode string) erro
 	return nil
 }
 
-func (r *whatsAppRepository) CreateFromQR(ctx context.Context, qrCode string) (*model.WhatsApp, error) {
+func (r *whatsApp) CreateFromQR(ctx context.Context, qrCode string) (*model.WhatsApp, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -198,7 +198,7 @@ func (r *whatsAppRepository) CreateFromQR(ctx context.Context, qrCode string) (*
 	return whats, nil
 }
 
-func (r *whatsAppRepository) Migrate(ctx context.Context) error {
+func (r *whatsApp) Migrate(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, createWhatsappTableQuery)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)

@@ -10,22 +10,22 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type WhatsAppHandler interface {
+type WhatsApp interface {
 	Get(ctx context.Context, req *proto.WhatsAppGetRequest) (*proto.WhatsAppGetResponse, error)
 	List(ctx context.Context, req *proto.VoidRequest) (*proto.WhatsAppListResponse, error)
 	proto.WhatsAppServiceServer
 }
 
-type whatsAppHandler struct {
-	service service.WhatsAppService
+type whatsApp struct {
+	service service.WhatsApp
 	proto.UnimplementedWhatsAppServiceServer
 }
 
-func NewWhatsAppHandler(s service.WhatsAppService) WhatsAppHandler {
-	return &whatsAppHandler{service: s}
+func NewWhatsApp(s service.WhatsApp) WhatsApp {
+	return &whatsApp{service: s}
 }
 
-func (h *whatsAppHandler) Get(ctx context.Context, req *proto.WhatsAppGetRequest) (*proto.WhatsAppGetResponse, error) {
+func (h *whatsApp) Get(ctx context.Context, req *proto.WhatsAppGetRequest) (*proto.WhatsAppGetResponse, error) {
 	if req.Uuid == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
 	}
@@ -47,7 +47,7 @@ func (h *whatsAppHandler) Get(ctx context.Context, req *proto.WhatsAppGetRequest
 	return res, nil
 }
 
-func (h *whatsAppHandler) List(ctx context.Context, _ *proto.VoidRequest) (*proto.WhatsAppListResponse, error) {
+func (h *whatsApp) List(ctx context.Context, _ *proto.VoidRequest) (*proto.WhatsAppListResponse, error) {
 	whatsList, err := h.service.GetAll(ctx)
 	if err != nil {
 		return nil, err

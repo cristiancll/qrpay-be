@@ -6,66 +6,66 @@ import (
 )
 
 type repositories struct {
-	user      repository.UserRepository
-	auth      repository.AuthRepository
-	wpp       repository.WhatsAppRepository
-	category  repository.CategoryRepository
-	item      repository.ItemRepository
-	opLog     repository.OperationLogRepository
-	order     repository.OrderRepository
-	orderItem repository.OrderItemRepository
-	retrieval repository.RetrievalRepository
-	sku       repository.SKURepository
-	stock     repository.StockRepository
+	user      repository.User
+	auth      repository.Auth
+	wpp       repository.WhatsApp
+	category  repository.Category
+	item      repository.Item
+	opLog     repository.OperationLog
+	order     repository.Order
+	orderItem repository.OrderItem
+	retrieval repository.Retrieval
+	sku       repository.SKU
+	stock     repository.Stock
 }
 
 func (s *Server) createRepositories() error {
-	s.repos.user = repository.NewUserRepository(s.db)
+	s.repos.user = repository.NewUser(s.db)
 	if err := s.repos.user.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate user repository: %v", err)
 	}
 
-	s.repos.auth = repository.NewAuthRepository(s.db)
+	s.repos.auth = repository.NewAuth(s.db)
 	if err := s.repos.auth.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate auth repository: %v", err)
 	}
 
-	s.repos.wpp = repository.NewWhatsAppRepository(s.db)
+	s.repos.wpp = repository.NewWhatsApp(s.db)
 	if err := s.repos.wpp.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate whatsapp repository: %v", err)
 	}
 
-	s.repos.category = repository.NewCategoryRepository(s.db)
+	s.repos.category = repository.NewCategory(s.db)
 	if err := s.repos.category.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate category repository: %v", err)
 	}
 
-	s.repos.item = repository.NewItemRepository(s.db)
+	s.repos.item = repository.NewItem(s.db)
 	if err := s.repos.item.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate item repository: %v", err)
 	}
 
-	s.repos.opLog = repository.NewOperationLogRepository(s.db)
+	s.repos.opLog = repository.NewOperationLog(s.db)
 	if err := s.repos.opLog.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate operation log repository: %v", err)
 	}
 
-	s.repos.order = repository.NewOrderRepository(s.db)
+	s.repos.order = repository.NewOrder(s.db)
 	if err := s.repos.order.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate order repository: %v", err)
 	}
 
-	s.repos.retrieval = repository.NewRetrievalRepository(s.db)
+	s.repos.retrieval = repository.NewRetrieval(s.db)
 	if err := s.repos.retrieval.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate retrieval repository: %v", err)
 	}
 
-	s.repos.sku = repository.NewSKURepository(s.db)
+	s.repos.sku = repository.NewSKU(s.db)
 	if err := s.repos.sku.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate sku repository: %v", err)
 	}
 
-	s.repos.stock = repository.NewStockRepository(s.db)
+	s.repos.stock = repository.NewStock(s.db)
 	if err := s.repos.stock.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate stock repository: %v", err)
 	}

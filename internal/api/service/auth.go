@@ -12,26 +12,26 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type AuthService interface {
+type Auth interface {
 	Login(ctx context.Context, username string, password string) (*model.User, *model.Auth, error)
 	Heartbeat(ctx context.Context) (*model.User, *model.Auth, error)
 }
 
-type authService struct {
+type auth struct {
 	pool     *pgxpool.Pool
-	repo     repository.AuthRepository
-	userRepo repository.UserRepository
+	repo     repository.Auth
+	userRepo repository.User
 }
 
-func NewAuthService(pool *pgxpool.Pool, r repository.AuthRepository, userRepo repository.UserRepository) AuthService {
-	return &authService{
+func NewAuth(pool *pgxpool.Pool, r repository.Auth, userRepo repository.User) Auth {
+	return &auth{
 		pool:     pool,
 		repo:     r,
 		userRepo: userRepo,
 	}
 }
 
-func (s *authService) Login(ctx context.Context, phone string, password string) (*model.User, *model.Auth, error) {
+func (s *auth) Login(ctx context.Context, phone string, password string) (*model.User, *model.Auth, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -63,7 +63,7 @@ func (s *authService) Login(ctx context.Context, phone string, password string) 
 	return user, auth, nil
 }
 
-func (s *authService) Heartbeat(ctx context.Context) (*model.User, *model.Auth, error) {
+func (s *auth) Heartbeat(ctx context.Context) (*model.User, *model.Auth, error) {
 	UUID := ctx.Value("UUID").(string)
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {

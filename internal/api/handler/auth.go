@@ -13,25 +13,25 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type AuthHandler interface {
+type Auth interface {
 	Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error)
 	Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid, error)
 	Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthHeartbeatResponse, error)
 	proto.AuthServiceServer
 }
 
-type authHandler struct {
-	service service.AuthService
+type auth struct {
+	service service.Auth
 	proto.UnimplementedAuthServiceServer
 }
 
-func NewAuthHandler(service service.AuthService) AuthHandler {
-	return &authHandler{
+func NewAuth(service service.Auth) Auth {
+	return &auth{
 		service: service,
 	}
 }
 
-func (h *authHandler) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error) {
+func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error) {
 	if req.Phone == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
 	}
@@ -77,7 +77,7 @@ func (h *authHandler) Login(ctx context.Context, req *proto.AuthLoginRequest) (*
 	return res, nil
 }
 
-func (h *authHandler) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid, error) {
+func (h *auth) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid, error) {
 	err := security.DeleteJWTCookie(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
@@ -86,7 +86,7 @@ func (h *authHandler) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.A
 	return res, nil
 }
 
-func (h *authHandler) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthHeartbeatResponse, error) {
+func (h *auth) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthHeartbeatResponse, error) {
 	user, auth, err := h.service.Heartbeat(ctx)
 	if err != nil {
 		return nil, err

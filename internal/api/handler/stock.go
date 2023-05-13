@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type StockHandler interface {
+type Stock interface {
 	proto.StockServiceServer
 }
 
-type stockHandler struct {
-	service service.StockService
+type stock struct {
+	service service.Stock
 	proto.UnimplementedStockServiceServer
 }
 
-func NewStockHandler(s service.StockService) StockHandler {
-	return &stockHandler{service: s}
+func NewStock(s service.Stock) Stock {
+	return &stock{service: s}
 }

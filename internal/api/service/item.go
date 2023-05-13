@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ItemService interface {
+type Item interface {
 }
 
-type itemService struct {
+type item struct {
 	pool *pgxpool.Pool
-	repo repository.ItemRepository
+	repo repository.Item
 }
 
-func NewItemService(pool *pgxpool.Pool, r repository.ItemRepository) ItemService {
-	return &itemService{
+func NewItem(pool *pgxpool.Pool, r repository.Item) Item {
+	return &item{
 		pool: pool,
 		repo: r,
 	}

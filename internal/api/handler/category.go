@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type CategoryHandler interface {
+type Category interface {
 	proto.CategoryServiceServer
 }
 
-type categoryHandler struct {
-	service service.CategoryService
+type category struct {
+	service service.Category
 	proto.UnimplementedCategoryServiceServer
 }
 
-func NewCategoryHandler(s service.CategoryService) CategoryHandler {
-	return &categoryHandler{service: s}
+func NewCategory(s service.Category) Category {
+	return &category{service: s}
 }

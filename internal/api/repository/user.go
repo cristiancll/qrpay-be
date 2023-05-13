@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-type UserRepository interface {
+type User interface {
 	Migrater
 	TCRUDer[model.User]
 	CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error
@@ -20,12 +20,12 @@ type UserRepository interface {
 	GetVerifiedList(ctx context.Context) ([]string, error)
 }
 
-type userRepository struct {
+type user struct {
 	db *pgxpool.Pool
 }
 
-func NewUserRepository(db *pgxpool.Pool) UserRepository {
-	return &userRepository{db: db}
+func NewUser(db *pgxpool.Pool) User {
+	return &user{db: db}
 }
 
 const (
@@ -41,7 +41,7 @@ const (
 	getVerifiedUserListQuery = "SELECT u.phone FROM users u INNER JOIN auths a ON u.id = a.user_id WHERE a.verified = true"
 )
 
-func (r *userRepository) GetVerifiedList(ctx context.Context) ([]string, error) {
+func (r *user) GetVerifiedList(ctx context.Context) ([]string, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -71,7 +71,7 @@ func (r *userRepository) GetVerifiedList(ctx context.Context) ([]string, error) 
 	return phones, nil
 }
 
-func (r *userRepository) GetUserByPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
+func (r *user) GetUserByPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
 	user := &model.User{}
 	row := tx.QueryRow(ctx, getUserByPhoneQuery, username)
 	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
@@ -83,7 +83,7 @@ func (r *userRepository) GetUserByPhone(ctx context.Context, tx pgx.Tx, username
 	return user, nil
 }
 
-func (r *userRepository) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error {
+func (r *user) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error {
 	count := 0
 	row := tx.QueryRow(ctx, countByPhoneQuery, phone)
 	err := row.Scan(&count)
@@ -96,7 +96,7 @@ func (r *userRepository) CountByPhone(ctx context.Context, tx pgx.Tx, phone stri
 	return nil
 }
 
-func (r *userRepository) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	var (
 		id        int64
 		createdAt time.Time
@@ -115,7 +115,7 @@ func (r *userRepository) TCreate(ctx context.Context, tx pgx.Tx, user *model.Use
 	return nil
 }
 
-func (r *userRepository) TUpdate(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *user) TUpdate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	var (
 		updatedAt time.Time
 	)
@@ -130,7 +130,7 @@ func (r *userRepository) TUpdate(ctx context.Context, tx pgx.Tx, user *model.Use
 	return nil
 }
 
-func (r *userRepository) TDelete(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *user) TDelete(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	_, err := tx.Exec(ctx, deleteUserQuery, user.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -138,7 +138,7 @@ func (r *userRepository) TDelete(ctx context.Context, tx pgx.Tx, user *model.Use
 	return nil
 }
 
-func (r *userRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
+func (r *user) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
 	user := &model.User{}
 
 	row := tx.QueryRow(ctx, getUserByIDQuery, id)
@@ -152,7 +152,7 @@ func (r *userRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*mo
 	return user, nil
 }
 
-func (r *userRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
+func (r *user) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
 	user := &model.User{}
 	row := tx.QueryRow(ctx, getUserByUUIDQuery, uuid)
 	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
@@ -164,7 +164,7 @@ func (r *userRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string)
 	return user, nil
 }
 
-func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User, error) {
+func (r *user) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User, error) {
 	var users []*model.User
 
 	rows, err := tx.Query(ctx, getAllUsersQuery)
@@ -186,7 +186,7 @@ func (r *userRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User,
 	return users, nil
 }
 
-func (r *userRepository) Migrate(ctx context.Context) error {
+func (r *user) Migrate(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, createUserTableQuery)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)

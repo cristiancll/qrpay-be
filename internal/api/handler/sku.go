@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type SKUHandler interface {
+type SKU interface {
 	proto.SKUServiceServer
 }
 
-type skuHandler struct {
-	service service.SKUService
+type sku struct {
+	service service.SKU
 	proto.UnimplementedSKUServiceServer
 }
 
-func NewSKUHandler(s service.SKUService) SKUHandler {
-	return &skuHandler{service: s}
+func NewSKU(s service.SKU) SKU {
+	return &sku{service: s}
 }

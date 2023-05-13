@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type UserHandler interface {
+type User interface {
 	Creater[model.User, proto.UserCreateRequest, proto.UserCreateResponse]
 	Getter[model.User, proto.UserGetRequest, proto.UserGetResponse]
 	Lister[model.User, proto.UserListRequest, proto.UserListResponse]
@@ -21,16 +21,16 @@ type UserHandler interface {
 	proto.UserServiceServer
 }
 
-type userHandler struct {
-	service service.UserService
+type user struct {
+	service service.User
 	proto.UnimplementedUserServiceServer
 }
 
-func NewUserHandler(s service.UserService) UserHandler {
-	return &userHandler{service: s}
+func NewUser(s service.User) User {
+	return &user{service: s}
 }
 
-func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
+func (h *user) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error) {
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
 	}
@@ -61,19 +61,19 @@ func (h *userHandler) Create(ctx context.Context, req *proto.UserCreateRequest) 
 	return res, nil
 }
 
-func (h *userHandler) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error) {
+func (h *user) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error) {
 	res := &proto.UserGetResponse{}
 
 	return res, nil
 }
 
-func (h *userHandler) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
+func (h *user) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
 	res := &proto.UserListResponse{}
 
 	return res, nil
 }
 
-func (h *userHandler) Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error) {
+func (h *user) Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error) {
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
 	}
@@ -106,13 +106,13 @@ func (h *userHandler) Update(ctx context.Context, req *proto.UserUpdateRequest) 
 	return res, nil
 }
 
-func (h *userHandler) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error) {
+func (h *user) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error) {
 	res := &proto.UserDeleteResponse{}
 
 	return res, nil
 }
 
-func (h *userHandler) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
+func (h *user) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
 	res := &proto.UserAdminCreatedResponse{}
 
 	return res, nil

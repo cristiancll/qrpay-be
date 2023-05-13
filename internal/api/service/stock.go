@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type StockService interface {
+type Stock interface {
 }
 
-type stockService struct {
+type stock struct {
 	pool *pgxpool.Pool
-	repo repository.StockRepository
+	repo repository.Stock
 }
 
-func NewStockService(pool *pgxpool.Pool, r repository.StockRepository) StockService {
-	return &stockService{
+func NewStock(pool *pgxpool.Pool, r repository.Stock) Stock {
+	return &stock{
 		pool: pool,
 		repo: r,
 	}

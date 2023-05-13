@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type UserService interface {
+type User interface {
 	Create(ctx context.Context, user *model.User, password string) error
 	Get(ctx context.Context, uuid string) (*model.User, error)
 	List(ctx context.Context) ([]model.User, error)
@@ -23,15 +23,15 @@ type UserService interface {
 	AdminCreated(ctx context.Context, user *model.User) error
 }
 
-type userService struct {
+type user struct {
 	pool     *pgxpool.Pool
-	repo     repository.UserRepository
-	authRepo repository.AuthRepository
+	repo     repository.User
+	authRepo repository.Auth
 	wpp      wpp.WhatsAppSystem
 }
 
-func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.UserRepository, authRepo repository.AuthRepository) UserService {
-	return &userService{
+func NewUser(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.User, authRepo repository.Auth) User {
+	return &user{
 		pool:     pool,
 		repo:     r,
 		authRepo: authRepo,
@@ -39,7 +39,7 @@ func NewUserService(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Use
 	}
 }
 
-func (s *userService) Create(ctx context.Context, user *model.User, password string) error {
+func (s *user) Create(ctx context.Context, user *model.User, password string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -80,17 +80,17 @@ func (s *userService) Create(ctx context.Context, user *model.User, password str
 	return nil
 }
 
-func (s *userService) Get(ctx context.Context, uuid string) (*model.User, error) {
+func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *userService) List(ctx context.Context) ([]model.User, error) {
+func (s *user) List(ctx context.Context) ([]model.User, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *userService) Update(ctx context.Context, user *model.User, password string) error {
+func (s *user) Update(ctx context.Context, user *model.User, password string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -131,12 +131,12 @@ func (s *userService) Update(ctx context.Context, user *model.User, password str
 	return nil
 }
 
-func (s *userService) Delete(ctx context.Context, uuid string) error {
+func (s *user) Delete(ctx context.Context, uuid string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (s *userService) AdminCreated(ctx context.Context, user *model.User) error {
+func (s *user) AdminCreated(ctx context.Context, user *model.User) error {
 	//TODO implement me
 	panic("implement me")
 }

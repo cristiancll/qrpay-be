@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type CategoryService interface {
+type Category interface {
 }
 
-type categoryService struct {
+type category struct {
 	pool *pgxpool.Pool
-	repo repository.CategoryRepository
+	repo repository.Category
 }
 
-func NewCategoryService(pool *pgxpool.Pool, r repository.CategoryRepository) CategoryService {
-	return &categoryService{
+func NewCategory(pool *pgxpool.Pool, r repository.Category) Category {
+	return &category{
 		pool: pool,
 		repo: r,
 	}

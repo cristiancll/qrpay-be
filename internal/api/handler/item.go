@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type ItemHandler interface {
+type Item interface {
 	proto.ItemServiceServer
 }
 
-type itemHandler struct {
-	service service.ItemService
+type item struct {
+	service service.Item
 	proto.UnimplementedItemServiceServer
 }
 
-func NewItemHandler(s service.ItemService) ItemHandler {
-	return &itemHandler{service: s}
+func NewItem(s service.Item) Item {
+	return &item{service: s}
 }

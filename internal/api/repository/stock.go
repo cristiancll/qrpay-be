@@ -7,50 +7,50 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type StockRepository interface {
+type Stock interface {
 	Migrater
 	TCRUDer[model.Stock]
 }
 
-type stockRepository struct {
+type stock struct {
 	db *pgxpool.Pool
 }
 
-func (r *stockRepository) Migrate(ctx context.Context) error {
+func NewStock(db *pgxpool.Pool) Stock {
+	return &stock{db: db}
+}
+
+func (r *stock) Migrate(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TCreate(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
+func (r *stock) TCreate(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TUpdate(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
+func (r *stock) TUpdate(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TDelete(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
+func (r *stock) TDelete(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Stock, error) {
+func (r *stock) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Stock, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Stock, error) {
+func (r *stock) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Stock, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *stockRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Stock, error) {
+func (r *stock) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Stock, error) {
 	//TODO implement me
 	panic("implement me")
-}
-
-func NewStockRepository(db *pgxpool.Pool) StockRepository {
-	return &stockRepository{db: db}
 }

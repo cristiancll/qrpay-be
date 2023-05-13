@@ -11,18 +11,18 @@ import (
 	"time"
 )
 
-type AuthRepository interface {
+type Auth interface {
 	Migrater
 	TCRUDer[model.Auth]
 	VerifyUser(context.Context, pgx.Tx, *model.User) error
 }
 
-type authRepository struct {
+type auth struct {
 	db *pgxpool.Pool
 }
 
-func NewAuthRepository(db *pgxpool.Pool) AuthRepository {
-	return &authRepository{db: db}
+func NewAuth(db *pgxpool.Pool) Auth {
+	return &auth{db: db}
 }
 
 const (
@@ -34,7 +34,7 @@ const (
 	verifyUserQuery      = "UPDATE auths SET verified = TRUE WHERE user_id = $1"
 )
 
-func (r *authRepository) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) error {
+func (r *auth) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	_, err := tx.Exec(ctx, verifyUserQuery, user.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -42,7 +42,7 @@ func (r *authRepository) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.
 	return nil
 }
 
-func (r *authRepository) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *auth) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	var (
 		id        int64
 		createdAt time.Time
@@ -59,7 +59,7 @@ func (r *authRepository) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Aut
 	return nil
 }
 
-func (r *authRepository) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *auth) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	var (
 		updatedAt time.Time
 	)
@@ -72,7 +72,7 @@ func (r *authRepository) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Aut
 	return nil
 }
 
-func (r *authRepository) TDelete(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
+func (r *auth) TDelete(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	_, err := tx.Exec(ctx, deleteAuthQuery, auth.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -80,7 +80,7 @@ func (r *authRepository) TDelete(ctx context.Context, tx pgx.Tx, auth *model.Aut
 	return nil
 }
 
-func (r *authRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
+func (r *auth) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
 	auth := &model.Auth{}
 	row := tx.QueryRow(ctx, getAuthByIDQuery, id)
 	err := row.Scan(&auth.ID, &auth.UserID, &auth.Password, &auth.Verified, &auth.Disabled, &auth.ResetToken, &auth.LastLogin, &auth.CreatedAt, &auth.UpdatedAt)
@@ -90,15 +90,15 @@ func (r *authRepository) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*mo
 	return auth, nil
 }
 
-func (r *authRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.Auth, error) {
+func (r *auth) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.Auth, error) {
 	return nil, status.Error(codes.Unimplemented, "method not implemented")
 }
 
-func (r *authRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Auth, error) {
+func (r *auth) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Auth, error) {
 	return nil, status.Error(codes.Unimplemented, "method not implemented")
 }
 
-func (r *authRepository) Migrate(ctx context.Context) error {
+func (r *auth) Migrate(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, createAuthTableQuery)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)

@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type SKUService interface {
+type SKU interface {
 }
 
-type skuService struct {
+type sku struct {
 	pool *pgxpool.Pool
-	repo repository.SKURepository
+	repo repository.SKU
 }
 
-func NewSKUService(pool *pgxpool.Pool, r repository.SKURepository) SKUService {
-	return &skuService{
+func NewSKU(pool *pgxpool.Pool, r repository.SKU) SKU {
+	return &sku{
 		pool: pool,
 		repo: r,
 	}

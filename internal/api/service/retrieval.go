@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type RetrievalService interface {
+type Retrieval interface {
 }
 
-type retrievalService struct {
+type retrieval struct {
 	pool *pgxpool.Pool
-	repo repository.RetrievalRepository
+	repo repository.Retrieval
 }
 
-func NewRetrievalService(pool *pgxpool.Pool, r repository.RetrievalRepository) RetrievalService {
-	return &retrievalService{
+func NewRetrieval(pool *pgxpool.Pool, r repository.Retrieval) Retrieval {
+	return &retrieval{
 		pool: pool,
 		repo: r,
 	}

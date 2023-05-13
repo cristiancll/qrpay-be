@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type OperationLogHandler interface {
+type OperationLog interface {
 	proto.OperationLogServiceServer
 }
 
-type operationLogHandler struct {
-	service service.OperationLogService
+type operationLog struct {
+	service service.OperationLog
 	proto.UnimplementedOperationLogServiceServer
 }
 
-func NewOperationLogHandler(s service.OperationLogService) OperationLogHandler {
-	return &operationLogHandler{service: s}
+func NewOperationLog(s service.OperationLog) OperationLog {
+	return &operationLog{service: s}
 }

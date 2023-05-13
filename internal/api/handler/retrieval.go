@@ -5,15 +5,15 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 )
 
-type RetrievalHandler interface {
+type Retrieval interface {
 	proto.RetrievalServiceServer
 }
 
-type retrievalHandler struct {
-	service service.RetrievalService
+type retrieval struct {
+	service service.Retrieval
 	proto.UnimplementedRetrievalServiceServer
 }
 
-func NewRetrievalHandler(s service.RetrievalService) RetrievalHandler {
-	return &retrievalHandler{service: s}
+func NewRetrieval(s service.Retrieval) Retrieval {
+	return &retrieval{service: s}
 }

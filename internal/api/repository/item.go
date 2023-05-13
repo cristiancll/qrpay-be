@@ -7,50 +7,50 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ItemRepository interface {
+type Item interface {
 	Migrater
 	TCRUDer[model.Item]
 }
 
-type itemRepository struct {
+type item struct {
 	db *pgxpool.Pool
 }
 
-func NewItemRepository(db *pgxpool.Pool) ItemRepository {
-	return &itemRepository{db: db}
+func NewItem(db *pgxpool.Pool) Item {
+	return &item{db: db}
 }
 
-func (r *itemRepository) Migrate(ctx context.Context) error {
+func (r *item) Migrate(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TCreate(ctx context.Context, tx pgx.Tx, item *model.Item) error {
+func (r *item) TCreate(ctx context.Context, tx pgx.Tx, item *model.Item) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TUpdate(ctx context.Context, tx pgx.Tx, item *model.Item) error {
+func (r *item) TUpdate(ctx context.Context, tx pgx.Tx, item *model.Item) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TDelete(ctx context.Context, tx pgx.Tx, item *model.Item) error {
+func (r *item) TDelete(ctx context.Context, tx pgx.Tx, item *model.Item) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Item, error) {
+func (r *item) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Item, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Item, error) {
+func (r *item) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Item, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *itemRepository) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Item, error) {
+func (r *item) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Item, error) {
 	//TODO implement me
 	panic("implement me")
 }

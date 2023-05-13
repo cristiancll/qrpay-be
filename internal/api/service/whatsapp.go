@@ -11,26 +11,26 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type WhatsAppService interface {
+type WhatsApp interface {
 	Get(ctx context.Context, uuid string) (*model.WhatsApp, error)
 	GetAll(ctx context.Context) ([]*model.WhatsApp, error)
 }
 
-func NewWhatsAppService(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, repo repository.WhatsAppRepository) WhatsAppService {
-	return &whatsAppService{
+type whatsApp struct {
+	pool *pgxpool.Pool
+	repo repository.WhatsApp
+	wpp  wpp.WhatsAppSystem
+}
+
+func NewWhatsApp(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, repo repository.WhatsApp) WhatsApp {
+	return &whatsApp{
 		pool: pool,
 		repo: repo,
 		wpp:  wpp,
 	}
 }
 
-type whatsAppService struct {
-	pool *pgxpool.Pool
-	repo repository.WhatsAppRepository
-	wpp  wpp.WhatsAppSystem
-}
-
-func (s *whatsAppService) Get(ctx context.Context, uuid string) (*model.WhatsApp, error) {
+func (s *whatsApp) Get(ctx context.Context, uuid string) (*model.WhatsApp, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -49,7 +49,7 @@ func (s *whatsAppService) Get(ctx context.Context, uuid string) (*model.WhatsApp
 	return whats, nil
 }
 
-func (s *whatsAppService) GetAll(ctx context.Context) ([]*model.WhatsApp, error) {
+func (s *whatsApp) GetAll(ctx context.Context) ([]*model.WhatsApp, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)

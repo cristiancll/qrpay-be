@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type OperationLogService interface {
+type OperationLog interface {
 }
 
-type operationLogService struct {
+type operationLog struct {
 	pool *pgxpool.Pool
-	repo repository.OperationLogRepository
+	repo repository.OperationLog
 }
 
-func NewOperationLogService(pool *pgxpool.Pool, r repository.OperationLogRepository) OperationLogService {
-	return &operationLogService{
+func NewOperationLog(pool *pgxpool.Pool, r repository.OperationLog) OperationLog {
+	return &operationLog{
 		pool: pool,
 		repo: r,
 	}
