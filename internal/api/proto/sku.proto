@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "item.proto";
+
+message SKU {
+  string uuid = 1;
+  Item item = 2;
+  string name = 3;
+  string description = 4;
+  int64 price = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+service SKUService {
+  rpc Create(SKUCreateRequest) returns (SKUCreateResponse);
+  rpc Get(SKUGetRequest) returns (SKUGetResponse);
+  rpc Update(SKUUpdateRequest) returns (SKUUpdateResponse);
+  rpc Delete(SKUDeleteRequest) returns (SKUDeleteResponse);
+  rpc List(SKUListRequest) returns (SKUListResponse);
+}
+
+message SKUCreateRequest {
+  Item item = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;
+}
+message SKUCreateResponse {
+  SKU sku = 1;
+}
+
+message SKUGetRequest {
+  string uuid = 1;
+}
+message SKUGetResponse {
+  SKU sku = 1;
+}
+
+message SKUUpdateRequest {
+  string uuid = 1;
+  Item item = 2;
+  string name = 3;
+  string description = 4;
+  int64 price = 5;
+}
+message SKUUpdateResponse {
+  SKU sku = 1;
+}
+
+message SKUDeleteRequest {
+  string uuid = 1;
+}
+message SKUDeleteResponse {}
+
+message SKUListRequest {}
+
+message SKUListResponse {
+  repeated SKU skus = 1;
+}
