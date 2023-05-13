@@ -5,11 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/cristiancll/qrpay-be/configs"
-	"github.com/cristiancll/qrpay-be/internal/api/handler"
 	"github.com/cristiancll/qrpay-be/internal/api/middleware"
-	"github.com/cristiancll/qrpay-be/internal/api/proto"
-	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
@@ -22,6 +18,10 @@ type Server struct {
 
 	db      *pgxpool.Pool
 	context context.Context
+
+	repos    *repositories
+	handlers *handlers
+	services *services
 }
 
 func (s *Server) startDatabase() error {
@@ -59,26 +59,19 @@ func loadTLSCredentials() credentials.TransportCredentials {
 func (s *Server) initializeAPI() error {
 
 	// Create Repositories
-	userRepo := repository.NewUserRepository(s.db)
-	if err := userRepo.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate user repository: %v", err)
-	}
-	authRepo := repository.NewAuthRepository(s.db)
-	if err := authRepo.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate auth repository: %v", err)
-	}
-	wppRepo := repository.NewWhatsAppRepository(s.db)
-	if err := wppRepo.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate whatsapp repository: %v", err)
+	err := s.createRepositories()
+	if err != nil {
+		return err
 	}
 
-	verifiedCache, err := userRepo.GetVerifiedList(s.context)
+	// Fetch verified list for WhatsApp System
+	verifiedCache, err := s.repos.user.GetVerifiedList(s.context)
 	if err != nil {
 		return fmt.Errorf("unable to get verified list: %v", err)
 	}
 
 	// Create WhatsApp System
-	wppSystem, err := wpp.New(s.db, wppRepo, userRepo, authRepo, verifiedCache)
+	wppSystem, err := wpp.New(s.db, s.repos.wpp, s.repos.user, s.repos.auth, verifiedCache)
 	if err != nil {
 		return fmt.Errorf("unable to start whatsapp client: %v", err)
 	}
@@ -89,15 +82,12 @@ func (s *Server) initializeAPI() error {
 	defer wppSystem.Stop()
 
 	// Create Services
-	userService := service.NewUserService(s.db, wppSystem, userRepo, authRepo)
-	authService := service.NewAuthService(s.db, authRepo, userRepo)
-	wppService := service.NewWhatsAppService(s.db, wppSystem, wppRepo)
+	s.createServices(wppSystem)
 
 	// Create Handlers
-	userHandler := handler.NewUserHandler(userService)
-	authHandler := handler.NewAuthHandler(authService)
-	wppHandler := handler.NewWhatsAppHandler(wppService)
+	s.createHandlers()
 
+	// Load TLS keys for HTTPS
 	creds := loadTLSCredentials()
 
 	// Create a new gRPC server
@@ -115,9 +105,7 @@ func (s *Server) initializeAPI() error {
 	)
 
 	// Register the Services
-	proto.RegisterUserServiceServer(grpcServer, userHandler)
-	proto.RegisterAuthServiceServer(grpcServer, authHandler)
-	proto.RegisterWhatsAppServiceServer(grpcServer, wppHandler)
+	s.registerServices(grpcServer)
 
 	// Create a new TCP listener
 	address := fmt.Sprintf(":%d", configs.Get().Server.Port)
