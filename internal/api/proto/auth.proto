@@ -4,8 +4,6 @@ package proto;
 
 option go_package = "github.com/cristiancll/qrpay-be/proto";
 
-import "google/protobuf/timestamp.proto";
-
 import "user.proto";
 
 message Auth {
