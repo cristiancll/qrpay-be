@@ -12,11 +12,11 @@ import (
 )
 
 type UserHandler interface {
-	Create(ctx context.Context, req *proto.UserCreateRequest) (*proto.UserCreateResponse, error)
-	Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error)
-	List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error)
-	Update(ctx context.Context, req *proto.UserUpdateRequest) (*proto.UserUpdateResponse, error)
-	Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto.UserDeleteResponse, error)
+	Creater[model.User, proto.UserCreateRequest, proto.UserCreateResponse]
+	Getter[model.User, proto.UserGetRequest, proto.UserGetResponse]
+	Lister[model.User, proto.UserListRequest, proto.UserListResponse]
+	Updater[model.User, proto.UserUpdateRequest, proto.UserUpdateResponse]
+	Deleter[model.User, proto.UserDeleteRequest, proto.UserDeleteResponse]
 	AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error)
 	proto.UserServiceServer
 }
