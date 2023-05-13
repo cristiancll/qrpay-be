@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+message Category {
+  string uuid = 1;
+  string name = 2;
+  google.protobuf.Timestamp created_at = 3;
+  google.protobuf.Timestamp updated_at = 4;
+}
+
+service CategoryService {
+  rpc Create(CategoryCreateRequest) returns (CategoryCreateResponse);
+  rpc Update(CategoryUpdateRequest) returns (CategoryUpdateResponse);
+  rpc Delete(CategoryDeleteRequest) returns (CategoryDeleteResponse);
+  rpc Get(CategoryGetRequest) returns (CategoryGetResponse);
+  rpc List(CategoryListRequest) returns (CategoryListResponse);
+}
+
+message CategoryCreateRequest {
+  string name = 1;
+}
+message CategoryCreateResponse {
+  Category category = 1;
+}
+
+message CategoryUpdateRequest {
+  string uuid = 1;
+  string name = 2;
+}
+message CategoryUpdateResponse {
+  Category category = 1;
+}
+
+message CategoryDeleteRequest {
+  string uuid = 1;
+}
+message CategoryDeleteResponse { }
+
+message CategoryGetRequest {
+  string uuid = 1;
+}
+message CategoryGetResponse {
+  Category category = 1;
+}
+
+message CategoryListRequest { }
+message CategoryListResponse {
+  repeated Category categories = 1;
+}
