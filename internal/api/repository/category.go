@@ -24,7 +24,7 @@ func NewCategory(db *pgxpool.Pool) Category {
 }
 
 const (
-	createCategoryTable = `CREATE TABLE IF NOT EXISTS category (
+	createCategoryTable = `CREATE TABLE IF NOT EXISTS categories (
 								id SERIAL PRIMARY KEY, 
 								uuid VARCHAR(255) NOT NULL, 
 								name VARCHAR(255) NOT NULL, 

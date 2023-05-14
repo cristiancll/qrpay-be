@@ -24,10 +24,10 @@ func NewStock(db *pgxpool.Pool) Stock {
 }
 
 const (
-	createStockTableQuery = `CREATE TABLE IF NOT EXISTS stock(
+	createStockTableQuery = `CREATE TABLE IF NOT EXISTS stocks(
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
-    		sku_id INT NOT NULL REFERENCES sku(id),
+    		sku_id INT NOT NULL REFERENCES skus(id),
     		quantity INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`

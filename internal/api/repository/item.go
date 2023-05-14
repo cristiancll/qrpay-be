@@ -24,10 +24,10 @@ func NewItem(db *pgxpool.Pool) Item {
 }
 
 const (
-	createItemTableQuery = `CREATE TABLE IF NOT EXISTS item(
+	createItemTableQuery = `CREATE TABLE IF NOT EXISTS items(
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
-    		category_id INT NOT NULL REFERENCES category(id),
+    		category_id INT NOT NULL REFERENCES categories(id),
     		name VARCHAR(255) NOT NULL,
     		create_at TIMESTAMP NOT NULL,
     		update_at TIMESTAMP NOT NULL)`

@@ -24,7 +24,7 @@ func NewOperationLog(db *pgxpool.Pool) OperationLog {
 }
 
 const (
-	createOperationLogTable = `CREATE TABLE IF NOT EXISTS operation_log(
+	createOperationLogTable = `CREATE TABLE IF NOT EXISTS operation_logs(
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
     		userId INT NOT NULL REFERENCES users(id),

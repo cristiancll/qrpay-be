@@ -24,11 +24,11 @@ func NewSaleItem(db *pgxpool.Pool) SaleItem {
 }
 
 const (
-	createSaleItemTableQuery = `CREATE TABLE IF NOT EXISTS sale_item(
+	createSaleItemTableQuery = `CREATE TABLE IF NOT EXISTS sale_items(
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
-    		sale_id INT NOT NULL REFERENCES "sale" (id),
-    		sku_id INT NOT NULL REFERENCES "sku" (id),
+    		sale_id INT NOT NULL REFERENCES sales(id),
+    		sku_id INT NOT NULL REFERENCES skus(id),
     		quantity INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`

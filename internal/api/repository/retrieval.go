@@ -24,12 +24,12 @@ type retrieval struct {
 }
 
 const (
-	createRetrievalTableQuery = `CREATE TABLE IF NOT EXISTS retrieval(
+	createRetrievalTableQuery = `CREATE TABLE IF NOT EXISTS retrievals(
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
     		user_id INT NOT NULL REFERENCES users(id),
     		seller_id INT NOT NULL REFERENCES users(id),
-    		sale_item_id INT NOT NULL REFERENCES sale_item(id),
+    		sale_item_id INT NOT NULL REFERENCES sale_items(id),
     		quantity INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`

@@ -24,11 +24,11 @@ func NewSale(db *pgxpool.Pool) Sale {
 }
 
 const (
-	createSaleTableQuery = `CREATE TABLE IF NOT EXISTS sale (
+	createSaleTableQuery = `CREATE TABLE IF NOT EXISTS sales (
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
-    		user_id INT NOT NULL REFERENCES "user" (id),
-    		seller_id INT NOT NULL REFERENCES "user" (id),
+    		user_id INT NOT NULL REFERENCES users(id),
+    		seller_id INT NOT NULL REFERENCES users(id),
     		amount INT NOT NULL,
     		paid BOOLEAN NOT NULL DEFAULT FALSE,
     		created_at TIMESTAMP NOT NULL,

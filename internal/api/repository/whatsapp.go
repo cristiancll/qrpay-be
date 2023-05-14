@@ -32,7 +32,7 @@ func NewWhatsApp(db *pgxpool.Pool) WhatsApp {
 }
 
 const (
-	createWhatsappTableQuery = `CREATE TABLE IF NOT EXISTS whatsapp (
+	createWhatsappTableQuery = `CREATE TABLE IF NOT EXISTS whatsapps (
 									id SERIAL PRIMARY KEY, 
 									uuid VARCHAR(255) NOT NULL, 
 									qr VARCHAR(255) NOT NULL, 
@@ -43,18 +43,18 @@ const (
 									updated_at TIMESTAMP NOT NULL
 								)`
 
-	createWhatsappQuery = `INSERT INTO whatsapp (uuid, qr, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, created_at, updated_at`
+	createWhatsappQuery = `INSERT INTO whatsapps (uuid, qr, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, created_at, updated_at`
 
-	updateWhatsappQuery = `UPDATE whatsapp SET qr = $2, phone = $3, active = $4, banned = $5, updated_at = now() WHERE id = $1`
-	disableAllQuery     = `UPDATE whatsapp SET active = FALSE, updated_at = now() WHERE active = TRUE`
+	updateWhatsappQuery = `UPDATE whatsapps SET qr = $2, phone = $3, active = $4, banned = $5, updated_at = now() WHERE id = $1`
+	disableAllQuery     = `UPDATE whatsapps SET active = FALSE, updated_at = now() WHERE active = TRUE`
 
-	deleteWhatsappQuery         = `DELETE FROM whatsapp WHERE id = $1`
-	deleteWhatsappByQRCodeQuery = `DELETE FROM whatsapp WHERE qr = $1`
+	deleteWhatsappQuery         = `DELETE FROM whatsapps WHERE id = $1`
+	deleteWhatsappByQRCodeQuery = `DELETE FROM whatsapps WHERE qr = $1`
 
-	getWhatsappByUUIDQuery = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapp WHERE uuid = $1`
-	getAllWhatsappQuery    = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapp`
+	getWhatsappByUUIDQuery = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapps WHERE uuid = $1`
+	getAllWhatsappQuery    = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapps`
 
-	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapp WHERE qr = $1`
+	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapps WHERE qr = $1`
 )
 
 func (r *whatsApp) DisableAll(ctx context.Context) error {

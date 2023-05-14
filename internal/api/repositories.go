@@ -55,6 +55,11 @@ func (s *Server) createRepositories() error {
 		return fmt.Errorf("unable to migrate sale repository: %v", err)
 	}
 
+	s.repos.sku = repository.NewSKU(s.db)
+	if err := s.repos.sku.Migrate(s.context); err != nil {
+		return fmt.Errorf("unable to migrate sku repository: %v", err)
+	}
+
 	s.repos.saleItem = repository.NewSaleItem(s.db)
 	if err := s.repos.saleItem.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate sale item repository: %v", err)
@@ -63,11 +68,6 @@ func (s *Server) createRepositories() error {
 	s.repos.retrieval = repository.NewRetrieval(s.db)
 	if err := s.repos.retrieval.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate retrieval repository: %v", err)
-	}
-
-	s.repos.sku = repository.NewSKU(s.db)
-	if err := s.repos.sku.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate sku repository: %v", err)
 	}
 
 	s.repos.stock = repository.NewStock(s.db)
