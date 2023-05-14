@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "sale.proto";
+import "sku.proto";
+
+message SaleItem {
+  string uuid = 1;
+  Sale sale = 2;
+  SKU sku = 3;
+  int64 quantity = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+service SaleItemService {
+  rpc Create(SaleItemCreateRequest) returns (SaleItemCreateResponse);
+  rpc Update(SaleItemUpdateRequest) returns (SaleItemUpdateResponse);
+  rpc Delete(SaleItemDeleteRequest) returns (SaleItemDeleteResponse);
+  rpc Get(SaleItemGetRequest) returns (SaleItemGetResponse);
+  rpc List(SaleItemListRequest) returns (SaleItemListResponse);
+}
+
+message SaleItemCreateRequest {
+  Sale sale = 1;
+  SKU sku = 2;
+  int64 quantity = 3;
+}
+
+message SaleItemCreateResponse {
+  SaleItem sale_item = 1;
+}
+
+message SaleItemUpdateRequest {
+  string uuid = 1;
+  Sale sale = 2;
+  SKU sku = 3;
+  int64 quantity = 4;
+}
+message SaleItemUpdateResponse {
+  SaleItem sale_item = 1;
+}
+
+message SaleItemDeleteRequest {
+  string uuid = 1;
+}
+message SaleItemDeleteResponse {}
+
+message SaleItemGetRequest {
+  string uuid = 1;
+}
+message SaleItemGetResponse {
+  SaleItem sale_item = 1;
+}
+
+message SaleItemListRequest {}
+
+message SaleItemListResponse {
+  repeated SaleItem sale_items = 1;
+}
+

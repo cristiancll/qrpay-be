@@ -10,21 +10,21 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type Order interface {
+type Sale interface {
 	Migrater
-	TCRUDer[model.Order]
+	TCRUDer[model.Sale]
 }
 
-type order struct {
+type sale struct {
 	db *pgxpool.Pool
 }
 
-func NewOrder(db *pgxpool.Pool) Order {
-	return &order{db: db}
+func NewSale(db *pgxpool.Pool) Sale {
+	return &sale{db: db}
 }
 
 const (
-	createOrderTableQuery = `CREATE TABLE IF NOT EXISTS "order" (
+	createSaleTableQuery = `CREATE TABLE IF NOT EXISTS sale (
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
     		user_id INT NOT NULL REFERENCES "user" (id),
@@ -35,40 +35,40 @@ const (
     		updated_at TIMESTAMP NOT NULL)`
 )
 
-func (r *order) Migrate(ctx context.Context) error {
-	_, err := r.db.Exec(ctx, createOrderTableQuery)
+func (r *sale) Migrate(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, createSaleTableQuery)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
 	return nil
 }
 
-func (r *order) TCreate(ctx context.Context, tx pgx.Tx, order *model.Order) error {
+func (r *sale) TCreate(ctx context.Context, tx pgx.Tx, sale *model.Sale) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *order) TUpdate(ctx context.Context, tx pgx.Tx, order *model.Order) error {
+func (r *sale) TUpdate(ctx context.Context, tx pgx.Tx, sale *model.Sale) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *order) TDelete(ctx context.Context, tx pgx.Tx, order *model.Order) error {
+func (r *sale) TDelete(ctx context.Context, tx pgx.Tx, sale *model.Sale) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *order) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Order, error) {
+func (r *sale) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.Sale, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *order) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Order, error) {
+func (r *sale) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.Sale, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (r *order) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Order, error) {
+func (r *sale) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Sale, error) {
 	//TODO implement me
 	panic("implement me")
 }

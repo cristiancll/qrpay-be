@@ -2,10 +2,10 @@ package model
 
 import "time"
 
-type OrderItem struct {
+type SaleItem struct {
 	ID        int64     `db:"id"`
 	UUID      string    `db:"uuid"`
-	OrderID   int64     `db:"order_id"`
+	SaleID    int64     `db:"sale_id"`
 	SKUID     int64     `db:"sku_id"`
 	Quantity  int64     `db:"quantity"`
 	CreatedAt time.Time `db:"created_at"`

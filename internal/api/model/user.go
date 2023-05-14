@@ -35,7 +35,7 @@ func (u *User) ConfirmMessage() string {
 	return fmt.Sprintf(format, u.Name)
 }
 
-func (u *User) OrderMessage() string {
+func (u *User) SaleMessage() string {
 	format := `Voce fez um pedido`
 	return format
 }

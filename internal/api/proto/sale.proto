@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/cristiancll/qrpay-be/proto";
+
+import "google/protobuf/timestamp.proto";
+
+import "user.proto";
+
+message Sale {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  int64 amount = 4;
+  bool paid = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+service SaleService {
+  rpc Create(SaleCreateRequest) returns (SaleCreateResponse);
+  rpc Get(SaleGetRequest) returns (SaleGetResponse);
+  rpc List(SaleListRequest) returns (SaleListResponse);
+  rpc Update(SaleUpdateRequest) returns (SaleUpdateResponse);
+  rpc Delete(SaleDeleteRequest) returns (SaleDeleteResponse);
+}
+
+message SaleCreateRequest {
+  User user = 1;
+  User seller = 2;
+  int64 amount = 3;
+}
+message SaleCreateResponse {
+  Sale sale = 1;
+}
+
+message SaleGetRequest {
+  string uuid = 1;
+}
+message SaleGetResponse {
+  Sale sale = 1;
+}
+
+message SaleListRequest {}
+
+message SaleListResponse {
+  repeated Sale sales = 1;
+}
+
+message SaleUpdateRequest {
+  string uuid = 1;
+  User user = 2;
+  User seller = 3;
+  int64 amount = 4;
+  bool paid = 5;
+}
+message SaleUpdateResponse {
+  Sale sale = 1;
+}
+
+message SaleDeleteRequest {
+  string uuid = 1;
+}
+message SaleDeleteResponse {}
+

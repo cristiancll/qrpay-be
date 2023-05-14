@@ -29,7 +29,7 @@ const (
     		uuid VARCHAR(255) NOT NULL,
     		user_id INT NOT NULL REFERENCES users(id),
     		seller_id INT NOT NULL REFERENCES users(id),
-    		order_item_id INT NOT NULL REFERENCES order_item(id),
+    		sale_item_id INT NOT NULL REFERENCES sale_item(id),
     		quantity INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`

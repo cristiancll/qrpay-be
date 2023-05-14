@@ -5,16 +5,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type OrderItem interface {
+type Sale interface {
 }
 
-type orderItem struct {
+type sale struct {
 	pool *pgxpool.Pool
-	repo repository.OrderItem
+	repo repository.Sale
 }
 
-func NewOrderItem(pool *pgxpool.Pool, r repository.OrderItem) OrderItem {
-	return &orderItem{
+func NewSale(pool *pgxpool.Pool, r repository.Sale) Sale {
+	return &sale{
 		pool: pool,
 		repo: r,
 	}

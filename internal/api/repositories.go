@@ -12,8 +12,8 @@ type repositories struct {
 	category  repository.Category
 	item      repository.Item
 	opLog     repository.OperationLog
-	order     repository.Order
-	orderItem repository.OrderItem
+	sale      repository.Sale
+	saleItem  repository.SaleItem
 	retrieval repository.Retrieval
 	sku       repository.SKU
 	stock     repository.Stock
@@ -50,9 +50,14 @@ func (s *Server) createRepositories() error {
 		return fmt.Errorf("unable to migrate operation log repository: %v", err)
 	}
 
-	s.repos.order = repository.NewOrder(s.db)
-	if err := s.repos.order.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate order repository: %v", err)
+	s.repos.sale = repository.NewSale(s.db)
+	if err := s.repos.sale.Migrate(s.context); err != nil {
+		return fmt.Errorf("unable to migrate sale repository: %v", err)
+	}
+
+	s.repos.saleItem = repository.NewSaleItem(s.db)
+	if err := s.repos.saleItem.Migrate(s.context); err != nil {
+		return fmt.Errorf("unable to migrate sale item repository: %v", err)
 	}
 
 	s.repos.retrieval = repository.NewRetrieval(s.db)

@@ -2,7 +2,7 @@ package model
 
 import "time"
 
-type Order struct {
+type Sale struct {
 	ID        int64     `db:"id"`
 	UUID      string    `db:"uuid"`
 	UserId    int64     `db:"user_id"`
