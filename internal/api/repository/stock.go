@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Stock interface {
@@ -20,9 +23,22 @@ func NewStock(db *pgxpool.Pool) Stock {
 	return &stock{db: db}
 }
 
+const (
+	createStockTableQuery = `CREATE TABLE IF NOT EXISTS stock(
+    		id SERIAL PRIMARY KEY,
+    		uuid VARCHAR(255) NOT NULL,
+    		sku_id INT NOT NULL REFERENCES sku(id),
+    		quantity INT NOT NULL,
+    		created_at TIMESTAMP NOT NULL,
+    		updated_at TIMESTAMP NOT NULL)`
+)
+
 func (r *stock) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := r.db.Exec(ctx, createStockTableQuery)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }
 
 func (r *stock) TCreate(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {

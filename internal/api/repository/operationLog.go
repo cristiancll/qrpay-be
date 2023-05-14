@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type OperationLog interface {
@@ -20,9 +23,25 @@ func NewOperationLog(db *pgxpool.Pool) OperationLog {
 	return &operationLog{db: db}
 }
 
+const (
+	createOperationLogTable = `CREATE TABLE IF NOT EXISTS operation_log(
+    		id SERIAL PRIMARY KEY,
+    		uuid VARCHAR(255) NOT NULL,
+    		userId INT NOT NULL REFERENCES users(id),
+    		sellerId INT NOT NULL REFERENCES users(id),
+    		operation VARCHAR(255) NOT NULL,
+    		operationId INT NOT NULL,
+    		metadata JSONB,
+    		createdAt TIMESTAMP NOT NULL,
+    		updatedAt TIMESTAMP NOT NULL)`
+)
+
 func (r *operationLog) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := r.db.Exec(ctx, createOperationLogTable)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }
 
 func (r *operationLog) TCreate(ctx context.Context, tx pgx.Tx, log *model.OperationLog) error {

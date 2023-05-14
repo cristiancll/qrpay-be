@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/cristiancll/qrpay-be/internal/api/proto"
+	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"google.golang.org/grpc"
 )
 

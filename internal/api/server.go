@@ -124,7 +124,12 @@ func (s *Server) initializeAPI() error {
 }
 
 func New(settingsPath string) *Server {
-	return &Server{settingsPath: settingsPath}
+	return &Server{
+		settingsPath: settingsPath,
+		repos:        &repositories{},
+		handlers:     &handlers{},
+		services:     &services{},
+	}
 }
 
 func (s *Server) Start() error {

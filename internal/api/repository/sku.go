@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type SKU interface {
@@ -20,9 +23,24 @@ func NewSKU(db *pgxpool.Pool) SKU {
 	return &sku{db: db}
 }
 
+const (
+	createSKUTableQuery = `CREATE TABLE IF NOT EXISTS skus (
+    		id SERIAL PRIMARY KEY,
+    		uuid VARCHAR(255) NOT NULL,
+    		item_id INT NOT NULL REFERENCES items(id),
+    		name VARCHAR(255) NOT NULL,
+    		description VARCHAR(255),
+    		price INT NOT NULL,
+    		created_at TIMESTAMP NOT NULL,
+    		updated_at TIMESTAMP NOT NULL)`
+)
+
 func (s sku) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := s.db.Exec(ctx, createSKUTableQuery)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return err
 }
 
 func (s sku) TCreate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {

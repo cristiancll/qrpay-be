@@ -29,7 +29,14 @@ func NewUser(db *pgxpool.Pool) User {
 }
 
 const (
-	createUserTableQuery     = "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, uuid VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, role INT NOT NULL, phone VARCHAR(255) NOT NULL, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)"
+	createUserTableQuery = `CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY, 
+			uuid VARCHAR(255) NOT NULL, 
+			name VARCHAR(255) NOT NULL, 
+			role INT NOT NULL, 
+			phone VARCHAR(255) NOT NULL, 
+			created_at TIMESTAMP NOT NULL, 
+			updated_at TIMESTAMP NOT NULL)`
 	createUserQuery          = "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id, created_at, updated_at"
 	updateUserQuery          = "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = now() WHERE id = $1 RETURNING updated_at"
 	deleteUserQuery          = "DELETE FROM users WHERE id = $1"

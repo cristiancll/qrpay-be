@@ -3,7 +3,7 @@ package handler
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
-	"github.com/cristiancll/qrpay-be/internal/api/proto"
+	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errors"
 	"google.golang.org/grpc/codes"

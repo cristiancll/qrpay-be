@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Category interface {
@@ -20,9 +23,21 @@ func NewCategory(db *pgxpool.Pool) Category {
 	return &category{db: db}
 }
 
+const (
+	createCategoryTable = `CREATE TABLE IF NOT EXISTS category (
+								id SERIAL PRIMARY KEY, 
+								uuid VARCHAR(255) NOT NULL, 
+								name VARCHAR(255) NOT NULL, 
+								created_at TIMESTAMP NOT NULL, 
+								updated_at TIMESTAMP NOT NULL);`
+)
+
 func (r *category) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := r.db.Exec(ctx, createCategoryTable)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }
 
 func (r *category) TCreate(ctx context.Context, tx pgx.Tx, category *model.Category) error {

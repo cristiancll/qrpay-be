@@ -26,12 +26,21 @@ func NewAuth(db *pgxpool.Pool) Auth {
 }
 
 const (
-	createAuthTableQuery = "CREATE TABLE IF NOT EXISTS auths (id SERIAL PRIMARY KEY, user_id BIGINT NOT NULL REFERENCES users(id), password VARCHAR(255) NOT NULL, verified BOOLEAN NOT NULL DEFAULT TRUE, disabled BOOLEAN NOT NULL DEFAULT FALSE, reset_token VARCHAR(255), last_login TIMESTAMP, created_at TIMESTAMP NOT NULL, updated_at TIMESTAMP NOT NULL)"
-	createAuthQuery      = "INSERT INTO auths (user_id, password, verified, disabled, reset_token, last_login, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, now(), now()) RETURNING id, created_at, updated_at"
-	updateAuthQuery      = "UPDATE auths SET password = $2, verified = $3, disabled = $4, reset_token = $5, last_login = $6, updated_at = now() WHERE id = $1 RETURNING updated_at"
-	deleteAuthQuery      = "DELETE FROM auths WHERE id = $1"
-	getAuthByIDQuery     = "SELECT id, user_id, password, verified, disabled, reset_token, last_login, created_at, updated_at FROM auths WHERE id = $1"
-	verifyUserQuery      = "UPDATE auths SET verified = TRUE WHERE user_id = $1"
+	createAuthTableQuery = `CREATE TABLE IF NOT EXISTS auths (
+				id SERIAL PRIMARY KEY, 
+				user_id INT NOT NULL REFERENCES users(id), 
+				password VARCHAR(255) NOT NULL, 
+				verified BOOLEAN NOT NULL DEFAULT FALSE, 
+				disabled BOOLEAN NOT NULL DEFAULT FALSE, 
+				reset_token VARCHAR(255), 
+				last_login TIMESTAMP, 
+				created_at TIMESTAMP NOT NULL, 
+				updated_at TIMESTAMP NOT NULL)`
+	createAuthQuery  = "INSERT INTO auths (user_id, password, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, created_at, updated_at"
+	updateAuthQuery  = "UPDATE auths SET password = $2, verified = $3, disabled = $4, reset_token = $5, last_login = $6, updated_at = now() WHERE id = $1 RETURNING updated_at"
+	deleteAuthQuery  = "DELETE FROM auths WHERE id = $1"
+	getAuthByIDQuery = "SELECT id, user_id, password, verified, disabled, reset_token, last_login, created_at, updated_at FROM auths WHERE id = $1"
+	verifyUserQuery  = "UPDATE auths SET verified = TRUE WHERE user_id = $1"
 )
 
 func (r *auth) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) error {
@@ -48,7 +57,7 @@ func (r *auth) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 		createdAt time.Time
 		updatedAt time.Time
 	)
-	row := tx.QueryRow(ctx, createAuthQuery, auth.UserID, auth.Password, auth.Verified, auth.Disabled, auth.ResetToken, auth.LastLogin)
+	row := tx.QueryRow(ctx, createAuthQuery, auth.UserID, auth.Password)
 	err := row.Scan(&id, &createdAt, &updatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)

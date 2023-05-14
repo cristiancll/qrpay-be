@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Order interface {
@@ -20,9 +23,24 @@ func NewOrder(db *pgxpool.Pool) Order {
 	return &order{db: db}
 }
 
+const (
+	createOrderTableQuery = `CREATE TABLE IF NOT EXISTS "order" (
+    		id SERIAL PRIMARY KEY,
+    		uuid VARCHAR(255) NOT NULL,
+    		user_id INT NOT NULL REFERENCES "user" (id),
+    		seller_id INT NOT NULL REFERENCES "user" (id),
+    		amount INT NOT NULL,
+    		paid BOOLEAN NOT NULL DEFAULT FALSE,
+    		created_at TIMESTAMP NOT NULL,
+    		updated_at TIMESTAMP NOT NULL)`
+)
+
 func (r *order) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := r.db.Exec(ctx, createOrderTableQuery)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }
 
 func (r *order) TCreate(ctx context.Context, tx pgx.Tx, order *model.Order) error {

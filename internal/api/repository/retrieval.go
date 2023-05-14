@@ -3,8 +3,11 @@ package repository
 import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Retrieval interface {
@@ -20,9 +23,24 @@ type retrieval struct {
 	db *pgxpool.Pool
 }
 
+const (
+	createRetrievalTableQuery = `CREATE TABLE IF NOT EXISTS retrieval(
+    		id SERIAL PRIMARY KEY,
+    		uuid VARCHAR(255) NOT NULL,
+    		user_id INT NOT NULL REFERENCES users(id),
+    		seller_id INT NOT NULL REFERENCES users(id),
+    		order_item_id INT NOT NULL REFERENCES order_item(id),
+    		quantity INT NOT NULL,
+    		created_at TIMESTAMP NOT NULL,
+    		updated_at TIMESTAMP NOT NULL)`
+)
+
 func (r *retrieval) Migrate(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+	_, err := r.db.Exec(ctx, createRetrievalTableQuery)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }
 
 func (r *retrieval) TCreate(ctx context.Context, tx pgx.Tx, retrieval *model.Retrieval) error {

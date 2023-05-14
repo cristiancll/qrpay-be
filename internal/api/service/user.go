@@ -65,7 +65,6 @@ func (s *user) Create(ctx context.Context, user *model.User, password string) er
 	auth := &model.Auth{
 		UserID:   user.ID,
 		Password: passwordHash,
-		Verified: false,
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
