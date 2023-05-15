@@ -23,4 +23,6 @@ const (
 	NO_WHATSAPP_FOUND  string = "Nenhum whatsapp encontrado"
 
 	UNAUTHORIZED string = "Não autorizado"
+
+	PERMISSION_DENIED string = "Permissão negada"
 )

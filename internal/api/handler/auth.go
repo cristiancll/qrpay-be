@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"strconv"
 )
 
 type Auth interface {
@@ -46,7 +47,7 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 	privateKey := configs.Get().Keys.JWT.PrivateKey
 	subj, err := json.Marshal(security.SubjectClaims{
 		UUID: user.UUID,
-		Role: string(user.Role),
+		Role: strconv.FormatInt(int64(user.Role), 10),
 	})
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
