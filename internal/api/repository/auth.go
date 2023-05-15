@@ -36,15 +36,16 @@ const (
 				last_login TIMESTAMP, 
 				created_at TIMESTAMP NOT NULL, 
 				updated_at TIMESTAMP NOT NULL)`
-	createAuthQuery  = "INSERT INTO auths (user_id, password, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, created_at, updated_at"
-	updateAuthQuery  = "UPDATE auths SET password = $2, verified = $3, disabled = $4, reset_token = $5, last_login = $6, updated_at = now() WHERE id = $1 RETURNING updated_at"
+	createAuthQuery  = "INSERT INTO auths (user_id, password, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
+	updateAuthQuery  = "UPDATE auths SET password = $2, verified = $3, disabled = $4, reset_token = $5, last_login = $6, updated_at = $7 WHERE id = $1"
 	deleteAuthQuery  = "DELETE FROM auths WHERE id = $1"
 	getAuthByIDQuery = "SELECT id, user_id, password, verified, disabled, reset_token, last_login, created_at, updated_at FROM auths WHERE id = $1"
-	verifyUserQuery  = "UPDATE auths SET verified = TRUE WHERE user_id = $1"
+	verifyUserQuery  = "UPDATE auths SET verified = TRUE, updatedAt = $2 WHERE user_id = $1"
 )
 
 func (r *auth) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) error {
-	_, err := tx.Exec(ctx, verifyUserQuery, user.ID)
+	user.UpdatedAt = time.Now().UTC()
+	_, err := tx.Exec(ctx, verifyUserQuery, user.ID, user.UpdatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
@@ -52,32 +53,22 @@ func (r *auth) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) erro
 }
 
 func (r *auth) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
-	var (
-		id        int64
-		createdAt time.Time
-		updatedAt time.Time
-	)
-	row := tx.QueryRow(ctx, createAuthQuery, auth.UserID, auth.Password)
-	err := row.Scan(&id, &createdAt, &updatedAt)
+	auth.CreatedAt = time.Now().UTC()
+	auth.UpdatedAt = time.Now().UTC()
+	row := tx.QueryRow(ctx, createAuthQuery, auth.UserID, auth.Password, auth.CreatedAt, auth.UpdatedAt)
+	err := row.Scan(&auth.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-	auth.ID = id
-	auth.CreatedAt = createdAt
-	auth.UpdatedAt = updatedAt
 	return nil
 }
 
 func (r *auth) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
-	var (
-		updatedAt time.Time
-	)
-	row := tx.QueryRow(ctx, updateAuthQuery, auth.ID, auth.Password, auth.Verified, auth.Disabled, auth.ResetToken, auth.LastLogin)
-	err := row.Scan(&updatedAt)
+	auth.UpdatedAt = time.Now().UTC()
+	_, err := tx.Exec(ctx, updateAuthQuery, auth.ID, auth.Password, auth.Verified, auth.Disabled, auth.ResetToken, auth.LastLogin, auth.UpdatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-	auth.UpdatedAt = updatedAt
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
 
 type WhatsApp interface {
@@ -43,10 +44,10 @@ const (
 									updated_at TIMESTAMP NOT NULL
 								)`
 
-	createWhatsappQuery = `INSERT INTO whatsapps (uuid, qr, created_at, updated_at) VALUES ($1, $2, now(), now()) RETURNING id, created_at, updated_at`
+	createWhatsappQuery = `INSERT INTO whatsapps (uuid, qr, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	updateWhatsappQuery = `UPDATE whatsapps SET qr = $2, phone = $3, active = $4, banned = $5, updated_at = now() WHERE id = $1`
-	disableAllQuery     = `UPDATE whatsapps SET active = FALSE, updated_at = now() WHERE active = TRUE`
+	updateWhatsappQuery = `UPDATE whatsapps SET qr = $2, phone = $3, active = $4, banned = $5, updated_at = $6 WHERE id = $1`
+	disableAllQuery     = `UPDATE whatsapps SET active = FALSE, updated_at = $1 WHERE active = TRUE`
 
 	deleteWhatsappQuery         = `DELETE FROM whatsapps WHERE id = $1`
 	deleteWhatsappByQRCodeQuery = `DELETE FROM whatsapps WHERE qr = $1`
@@ -58,7 +59,7 @@ const (
 )
 
 func (r *whatsApp) DisableAll(ctx context.Context) error {
-	_, err := r.db.Exec(ctx, disableAllQuery)
+	_, err := r.db.Exec(ctx, disableAllQuery, time.Now().UTC())
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
@@ -67,8 +68,10 @@ func (r *whatsApp) DisableAll(ctx context.Context) error {
 
 func (r *whatsApp) TCreate(ctx context.Context, tx pgx.Tx, whats *model.WhatsApp) error {
 	whats.UUID = uuid.New().String()
-	row := tx.QueryRow(ctx, createWhatsappQuery, whats.UUID, whats.QR)
-	err := row.Scan(&whats.ID, &whats.CreatedAt, &whats.UpdatedAt)
+	whats.CreatedAt = time.Now().UTC()
+	whats.UpdatedAt = time.Now().UTC()
+	row := tx.QueryRow(ctx, createWhatsappQuery, whats.UUID, whats.QR, whats.CreatedAt, whats.UpdatedAt)
+	err := row.Scan(&whats.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
@@ -114,8 +117,8 @@ func (r *whatsApp) Update(ctx context.Context, whats *model.WhatsApp) error {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
 	defer tx.Rollback(ctx)
-
-	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Active, whats.Banned)
+	whats.UpdatedAt = time.Now().UTC()
+	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Active, whats.Banned, whats.UpdatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}

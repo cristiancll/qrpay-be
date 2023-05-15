@@ -37,8 +37,8 @@ const (
 			phone VARCHAR(255) NOT NULL UNIQUE, 
 			created_at TIMESTAMP NOT NULL, 
 			updated_at TIMESTAMP NOT NULL)`
-	createUserQuery          = "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, now(), now()) RETURNING id, created_at, updated_at"
-	updateUserQuery          = "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = now() WHERE id = $1 RETURNING updated_at"
+	createUserQuery          = "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+	updateUserQuery          = "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = $5 WHERE id = $1"
 	deleteUserQuery          = "DELETE FROM users WHERE id = $1"
 	getUserByIDQuery         = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE id = $1"
 	getUserByUUIDQuery       = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE uuid = $1"
@@ -104,36 +104,25 @@ func (r *user) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error 
 }
 
 func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
-	var (
-		id        int64
-		createdAt time.Time
-		updatedAt time.Time
-	)
+	var id int64
 	user.UUID = uuid.New().String()
-	row := tx.QueryRow(ctx, createUserQuery, user.UUID, user.Name, user.Role, user.Phone)
-	err := row.Scan(&id, &createdAt, &updatedAt)
+	user.CreatedAt = time.Now().UTC()
+	user.UpdatedAt = time.Now().UTC()
+	row := tx.QueryRow(ctx, createUserQuery, user.UUID, user.Name, user.Role, user.Phone, user.CreatedAt, user.UpdatedAt)
+	err := row.Scan(&id)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-
 	user.ID = id
-	user.CreatedAt = createdAt
-	user.UpdatedAt = updatedAt
 	return nil
 }
 
 func (r *user) TUpdate(ctx context.Context, tx pgx.Tx, user *model.User) error {
-	var (
-		updatedAt time.Time
-	)
-	row := tx.QueryRow(ctx, updateUserQuery, user.ID, user.Name, user.Role, user.Phone)
-	err := row.Scan(&updatedAt)
-	if err == pgx.ErrNoRows {
-		return status.Error(codes.NotFound, errors.USER_NOT_FOUND)
-	} else if err != nil {
+	user.UpdatedAt = time.Now().UTC()
+	_, err := tx.Exec(ctx, updateUserQuery, user.ID, user.Name, user.Role, user.Phone, user.UpdatedAt)
+	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-	user.UpdatedAt = updatedAt
 	return nil
 }
 
