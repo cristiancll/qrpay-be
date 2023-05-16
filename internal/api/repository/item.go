@@ -101,6 +101,7 @@ func (r *item) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Item, error) {
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		item := &model.Item{}
 		err = rows.Scan(&item.ID, &item.UUID, &item.Category.UUID, &item.Category.Name, &item.Category.CreatedAt, &item.Category.UpdatedAt, &item.Name, &item.CreatedAt, &item.UpdatedAt)

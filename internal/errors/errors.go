@@ -7,6 +7,8 @@ const (
 	PASSWORD_REQUIRED       string = "Senha é obrigatória"
 	NAME_REQUIRED           string = "Nome é obrigatório"
 	CATEGORY_REQUIRED       string = "Categoria é obrigatória"
+	ITEM_REQUIRED           string = "Item é obrigatório"
+	PRICE_REQUIRED          string = "Preço é obrigatório"
 	AUTH_ERROR              string = "Erro de autenticação"
 	INTERNAL_ERROR          string = "Erro interno"
 	INVALID_PASSWORD        string = "Senha inválida"
