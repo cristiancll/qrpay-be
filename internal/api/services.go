@@ -24,7 +24,7 @@ func (s *Server) createServices(wppSystem wpp.WhatsAppSystem) {
 	s.services.auth = service.NewAuth(s.db, s.repos.auth, s.repos.user)
 	s.services.wpp = service.NewWhatsApp(s.db, wppSystem, s.repos.wpp)
 	s.services.category = service.NewCategory(s.db, s.repos.category)
-	s.services.item = service.NewItem(s.db, s.repos.item)
+	s.services.item = service.NewItem(s.db, s.repos.item, s.repos.category)
 	s.services.opLog = service.NewOperationLog(s.db, s.repos.opLog)
 	s.services.sale = service.NewSale(s.db, s.repos.sale)
 	s.services.saleItem = service.NewSaleItem(s.db, s.repos.saleItem)

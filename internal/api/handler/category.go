@@ -36,10 +36,7 @@ func (c *category) Create(ctx context.Context, req *proto.CategoryCreateRequest)
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
 	}
-	category := &model.Category{
-		Name: req.Name,
-	}
-	err = c.service.Create(ctx, category)
+	category, err := c.service.Create(ctx, req.Name)
 	if err != nil {
 		return nil, err
 	}

@@ -28,7 +28,7 @@ const (
     		id SERIAL PRIMARY KEY,
     		uuid VARCHAR(255) NOT NULL,
     		item_id INT NOT NULL REFERENCES items(id),
-    		name VARCHAR(255) NOT NULL,
+    		name VARCHAR(255) NOT NULL UNIQUE,
     		description VARCHAR(255),
     		price INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,

@@ -29,7 +29,7 @@ const (
 	createCategoryTable = `CREATE TABLE IF NOT EXISTS categories (
 								id SERIAL PRIMARY KEY, 
 								uuid VARCHAR(255) NOT NULL, 
-								name VARCHAR(255) NOT NULL, 
+								name VARCHAR(255) NOT NULL UNIQUE, 
 								created_at TIMESTAMP NOT NULL, 
 								updated_at TIMESTAMP NOT NULL);`
 	createCategoryQuery    = "INSERT INTO categories (uuid, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at"
@@ -66,7 +66,6 @@ func (r *category) TUpdate(ctx context.Context, tx pgx.Tx, category *model.Categ
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
 	return nil
-
 }
 
 func (r *category) TDelete(ctx context.Context, tx pgx.Tx, category *model.Category) error {

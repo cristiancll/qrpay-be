@@ -11,7 +11,7 @@ import (
 )
 
 type Category interface {
-	Create(ctx context.Context, category *model.Category) error
+	Create(ctx context.Context, name string) (*model.Category, error)
 	Update(ctx context.Context, uuid string, name string) (*model.Category, error)
 	Delete(ctx context.Context, uuid string) error
 	List(ctx context.Context) ([]*model.Category, error)
@@ -29,23 +29,26 @@ func NewCategory(pool *pgxpool.Pool, r repository.Category) Category {
 	}
 }
 
-func (c category) Create(ctx context.Context, category *model.Category) error {
+func (c category) Create(ctx context.Context, name string) (*model.Category, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
 
+	category := &model.Category{
+		Name: name,
+	}
 	err = c.repo.TCreate(ctx, tx, category)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	return nil
+	return category, nil
 }
 
 func (c category) Update(ctx context.Context, uuid string, name string) (*model.Category, error) {
