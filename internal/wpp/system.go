@@ -9,11 +9,9 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/common"
 	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/lib/pq"
-	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow/types"
 	"go.mau.fi/whatsmeow/types/events"
 	"google.golang.org/protobuf/proto"
-	"os"
 	"strings"
 
 	"go.mau.fi/whatsmeow"
@@ -81,9 +79,14 @@ func New(db *pgxpool.Pool, repo repository.WhatsApp, userRepo repository.User, a
 
 func (s *whatsAppSystem) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsmeow.QRChannelItem) {
 	var previousCode string
+	defer s.repo.ClearUnusedWhatsApp(ctx)
+	timeout := false
 	for evt := range qrChan {
 		var err error
 		if evt.Event != "code" {
+			if evt.Event == "timeout" {
+				timeout = true
+			}
 			break
 		}
 		newQRCode := evt.Code
@@ -101,13 +104,21 @@ func (s *whatsAppSystem) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsm
 		if err != nil {
 			// TODO: log error
 		}
-		qrterminal.GenerateHalfBlock(evt.Code, qrterminal.H, os.Stdout)
-		//qrterminal.GenerateHalfBlock(evt.Code, qrterminal.H, os.Stdout)
 		previousCode = newQRCode
+	}
+	if timeout {
+		err := s.Start()
+		if err != nil {
+			// TODO: log error
+		}
 	}
 }
 
 func (s *whatsAppSystem) Start() error {
+	err := s.repo.ClearUnusedWhatsApp(s.ctx)
+	if err != nil {
+		// TODO: log error
+	}
 	var qrChan <-chan whatsmeow.QRChannelItem
 	if s.client.Store.ID != nil {
 		err := s.client.Connect()
@@ -117,7 +128,7 @@ func (s *whatsAppSystem) Start() error {
 		return nil
 	}
 	qrChan, _ = s.client.GetQRChannel(s.ctx)
-	err := s.client.Connect()
+	err = s.client.Connect()
 	if err != nil {
 		return err
 	}
@@ -127,28 +138,26 @@ func (s *whatsAppSystem) Start() error {
 
 func (s *whatsAppSystem) eventHandler(evt interface{}) {
 	switch v := evt.(type) {
+	case *events.PairSuccess:
+		s.whatsapp.Scanned = true
+		s.repo.Update(s.ctx, s.whatsapp)
 	case *events.PairError:
 		s.repo.Delete(s.ctx, s.whatsapp)
-
 	case *events.Connected:
-		s.whatsapp.Phone = s.device.ID.User
+		s.whatsapp.Phone = &s.device.ID.User
 		s.whatsapp.Active = true
 		s.repo.Update(s.ctx, s.whatsapp)
-
 	case *events.Disconnected:
 		s.repo.Delete(s.ctx, s.whatsapp)
 		s.restart()
-
 	case *events.TemporaryBan:
 		s.whatsapp.Banned = true
 		s.whatsapp.Active = false
 		s.repo.Update(s.ctx, s.whatsapp)
 		s.restart()
-
 	case *events.LoggedOut:
 		s.repo.Delete(s.ctx, s.whatsapp)
 		s.restart()
-
 	case *events.Message:
 		phone := v.Info.MessageSource.Sender.User
 		msg := *v.Message.Conversation
@@ -199,6 +208,8 @@ func (s *whatsAppSystem) handleUserVerification(phone string) {
 
 func (s *whatsAppSystem) restart() {
 	s.Stop()
+	s.client = whatsmeow.NewClient(s.device, nil)
+	s.client.AddEventHandler(s.eventHandler)
 	err := s.Start()
 	if err != nil {
 		// TODO: log error

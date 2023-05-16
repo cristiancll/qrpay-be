@@ -22,6 +22,9 @@ type WhatsApp interface {
 	DeleteByQR(ctx context.Context, code string) error
 	CreateFromQR(ctx context.Context, code string) (*model.WhatsApp, error)
 	DisableAll(ctx context.Context) error
+	TGetUnscannedWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error)
+	ClearUnusedWhatsApp(ctx context.Context) error
+	TGetActiveWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error)
 }
 
 type whatsApp struct {
@@ -39,6 +42,7 @@ const (
 									qr VARCHAR(255) NOT NULL, 
 									phone VARCHAR(255), 
 									active BOOLEAN DEFAULT FALSE, 
+									scanned BOOLEAN DEFAULT FALSE,
 									banned BOOLEAN DEFAULT FALSE, 
 									created_at TIMESTAMP NOT NULL, 
 									updated_at TIMESTAMP NOT NULL
@@ -46,17 +50,52 @@ const (
 
 	createWhatsappQuery = `INSERT INTO whatsapps (uuid, qr, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id`
 
-	updateWhatsappQuery = `UPDATE whatsapps SET qr = $2, phone = $3, active = $4, banned = $5, updated_at = $6 WHERE id = $1`
+	updateWhatsappQuery = `UPDATE whatsapps SET qr = $2, phone = $3, scanned = $4, active = $5, banned = $6, updated_at = $7 WHERE id = $1`
 	disableAllQuery     = `UPDATE whatsapps SET active = FALSE, updated_at = $1 WHERE active = TRUE`
 
 	deleteWhatsappQuery         = `DELETE FROM whatsapps WHERE id = $1`
 	deleteWhatsappByQRCodeQuery = `DELETE FROM whatsapps WHERE qr = $1`
+	clearUnusedWhatsAppQuery    = `DELETE FROM whatsapps WHERE active = FALSE AND scanned = FALSE`
 
-	getWhatsappByUUIDQuery = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapps WHERE uuid = $1`
-	getAllWhatsappQuery    = `SELECT id, uuid, qr, phone, active, banned, created_at, updated_at FROM whatsapps`
+	getWhatsappByUUIDQuery    = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE uuid = $1`
+	getAllWhatsappQuery       = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps`
+	getUnscannedWhatsappQuery = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE scanned = FALSE LIMIT 1`
+	getActiveWhatsappQuery    = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE active = TRUE LIMIT 1`
 
 	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapps WHERE qr = $1`
 )
+
+func (r *whatsApp) ClearUnusedWhatsApp(ctx context.Context) error {
+	_, err := r.db.Exec(ctx, clearUnusedWhatsAppQuery)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
+}
+
+func (r *whatsApp) TGetUnscannedWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error) {
+	row := tx.QueryRow(ctx, getUnscannedWhatsappQuery)
+	whats := &model.WhatsApp{}
+	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Scanned, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
+	if err == pgx.ErrNoRows {
+		return nil, status.Error(codes.NotFound, errors.WHATSAPP_NOT_FOUND)
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return whats, nil
+}
+
+func (r *whatsApp) TGetActiveWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error) {
+	row := tx.QueryRow(ctx, getActiveWhatsappQuery)
+	whats := &model.WhatsApp{}
+	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Scanned, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
+	if err == pgx.ErrNoRows {
+		return nil, status.Error(codes.NotFound, errors.WHATSAPP_NOT_FOUND)
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return whats, nil
+}
 
 func (r *whatsApp) DisableAll(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, disableAllQuery, time.Now().UTC())
@@ -81,7 +120,7 @@ func (r *whatsApp) TCreate(ctx context.Context, tx pgx.Tx, whats *model.WhatsApp
 func (r *whatsApp) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.WhatsApp, error) {
 	row := tx.QueryRow(ctx, getWhatsappByUUIDQuery, uuid)
 	whats := &model.WhatsApp{}
-	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
+	err := row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Scanned, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
 	if err == pgx.ErrNoRows {
 		return nil, status.Error(codes.NotFound, errors.WHATSAPP_NOT_FOUND)
 	} else if err != nil {
@@ -102,7 +141,7 @@ func (r *whatsApp) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.WhatsApp, e
 	whatsList := make([]*model.WhatsApp, 0)
 	for rows.Next() {
 		w := &model.WhatsApp{}
-		err = rows.Scan(&w.ID, &w.UUID, &w.QR, &w.Phone, &w.Active, &w.Banned, &w.CreatedAt, &w.UpdatedAt)
+		err = rows.Scan(&w.ID, &w.UUID, &w.QR, &w.Phone, &w.Scanned, &w.Active, &w.Banned, &w.CreatedAt, &w.UpdatedAt)
 		if err != nil {
 			return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
 		}
@@ -118,7 +157,7 @@ func (r *whatsApp) Update(ctx context.Context, whats *model.WhatsApp) error {
 	}
 	defer tx.Rollback(ctx)
 	whats.UpdatedAt = time.Now().UTC()
-	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Active, whats.Banned, whats.UpdatedAt)
+	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Scanned, whats.Active, whats.Banned, whats.UpdatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}

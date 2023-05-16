@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type WhatsAppServiceClient interface {
 	Get(ctx context.Context, in *WhatsAppGetRequest, opts ...grpc.CallOption) (*WhatsAppGetResponse, error)
 	List(ctx context.Context, in *VoidRequest, opts ...grpc.CallOption) (*WhatsAppListResponse, error)
+	QRCodeStream(ctx context.Context, in *VoidRequest, opts ...grpc.CallOption) (WhatsAppService_QRCodeStreamClient, error)
 }
 
 type whatsAppServiceClient struct {
@@ -52,12 +53,45 @@ func (c *whatsAppServiceClient) List(ctx context.Context, in *VoidRequest, opts 
 	return out, nil
 }
 
+func (c *whatsAppServiceClient) QRCodeStream(ctx context.Context, in *VoidRequest, opts ...grpc.CallOption) (WhatsAppService_QRCodeStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &WhatsAppService_ServiceDesc.Streams[0], "/proto.WhatsAppService/QRCodeStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &whatsAppServiceQRCodeStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type WhatsAppService_QRCodeStreamClient interface {
+	Recv() (*WhatsApp, error)
+	grpc.ClientStream
+}
+
+type whatsAppServiceQRCodeStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *whatsAppServiceQRCodeStreamClient) Recv() (*WhatsApp, error) {
+	m := new(WhatsApp)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // WhatsAppServiceServer is the server API for WhatsAppService service.
 // All implementations must embed UnimplementedWhatsAppServiceServer
 // for forward compatibility
 type WhatsAppServiceServer interface {
 	Get(context.Context, *WhatsAppGetRequest) (*WhatsAppGetResponse, error)
 	List(context.Context, *VoidRequest) (*WhatsAppListResponse, error)
+	QRCodeStream(*VoidRequest, WhatsAppService_QRCodeStreamServer) error
 	mustEmbedUnimplementedWhatsAppServiceServer()
 }
 
@@ -70,6 +104,9 @@ func (UnimplementedWhatsAppServiceServer) Get(context.Context, *WhatsAppGetReque
 }
 func (UnimplementedWhatsAppServiceServer) List(context.Context, *VoidRequest) (*WhatsAppListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedWhatsAppServiceServer) QRCodeStream(*VoidRequest, WhatsAppService_QRCodeStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method QRCodeStream not implemented")
 }
 func (UnimplementedWhatsAppServiceServer) mustEmbedUnimplementedWhatsAppServiceServer() {}
 
@@ -120,6 +157,27 @@ func _WhatsAppService_List_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WhatsAppService_QRCodeStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(VoidRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(WhatsAppServiceServer).QRCodeStream(m, &whatsAppServiceQRCodeStreamServer{stream})
+}
+
+type WhatsAppService_QRCodeStreamServer interface {
+	Send(*WhatsApp) error
+	grpc.ServerStream
+}
+
+type whatsAppServiceQRCodeStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *whatsAppServiceQRCodeStreamServer) Send(m *WhatsApp) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // WhatsAppService_ServiceDesc is the grpc.ServiceDesc for WhatsAppService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -136,6 +194,12 @@ var WhatsAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _WhatsAppService_List_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "QRCodeStream",
+			Handler:       _WhatsAppService_QRCodeStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "whatsapp.proto",
 }

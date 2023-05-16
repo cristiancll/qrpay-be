@@ -14,6 +14,8 @@ import (
 type WhatsApp interface {
 	Get(ctx context.Context, uuid string) (*model.WhatsApp, error)
 	GetAll(ctx context.Context) ([]*model.WhatsApp, error)
+	GetUnscannedWhatsApp(ctx context.Context) (*model.WhatsApp, error)
+	GetActiveWhatsApp(ctx context.Context) (*model.WhatsApp, error)
 }
 
 type whatsApp struct {
@@ -57,6 +59,44 @@ func (s *whatsApp) GetAll(ctx context.Context) ([]*model.WhatsApp, error) {
 	defer tx.Rollback(ctx)
 
 	whats, err := s.repo.TGetAll(ctx, tx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return whats, nil
+}
+
+func (s *whatsApp) GetUnscannedWhatsApp(ctx context.Context) (*model.WhatsApp, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	whats, err := s.repo.TGetUnscannedWhatsApp(ctx, tx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return whats, nil
+}
+
+func (s *whatsApp) GetActiveWhatsApp(ctx context.Context) (*model.WhatsApp, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	whats, err := s.repo.TGetActiveWhatsApp(ctx, tx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}

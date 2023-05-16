@@ -9,11 +9,12 @@ import "google/protobuf/timestamp.proto";
 message WhatsApp {
   string uuid = 1;
   string qr = 2;
-  string phone = 3;
-  bool active = 4;
-  bool banned = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  optional string phone = 3;
+  bool scanned = 4;
+  bool active = 5;
+  bool banned = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
 }
 
 message WhatsAppGetRequest {
@@ -33,4 +34,5 @@ message WhatsAppListResponse {
 service WhatsAppService {
   rpc Get(WhatsAppGetRequest) returns (WhatsAppGetResponse);
   rpc List(VoidRequest) returns (WhatsAppListResponse);
+  rpc QRCodeStream(VoidRequest) returns (stream WhatsApp);
 }

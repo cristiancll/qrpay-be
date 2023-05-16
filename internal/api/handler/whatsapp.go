@@ -8,11 +8,13 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
 )
 
 type WhatsApp interface {
 	Get(ctx context.Context, req *proto.WhatsAppGetRequest) (*proto.WhatsAppGetResponse, error)
 	List(ctx context.Context, req *proto.VoidRequest) (*proto.WhatsAppListResponse, error)
+	QRCodeStream(req *proto.VoidRequest, stream proto.WhatsAppService_QRCodeStreamServer) error
 	proto.WhatsAppServiceServer
 }
 
@@ -68,4 +70,57 @@ func (h *whatsApp) List(ctx context.Context, _ *proto.VoidRequest) (*proto.Whats
 		WhatsAppList: pWhatsList,
 	}
 	return res, nil
+}
+
+func (h *whatsApp) QRCodeStream(_ *proto.VoidRequest, stream proto.WhatsAppService_QRCodeStreamServer) error {
+	wpp, err := h.service.GetActiveWhatsApp(stream.Context())
+	if err == nil {
+		res := &proto.WhatsApp{
+			Uuid:      wpp.UUID,
+			Qr:        wpp.QR,
+			Phone:     wpp.Phone,
+			Scanned:   wpp.Scanned,
+			Active:    wpp.Active,
+			Banned:    wpp.Banned,
+			CreatedAt: timestamppb.New(wpp.CreatedAt),
+			UpdatedAt: timestamppb.New(wpp.UpdatedAt),
+		}
+		err = stream.Send(res)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	for {
+		if stream.Context().Err() == context.Canceled {
+			break
+		} else if stream.Context().Err() != nil {
+			break
+		}
+		wpp, err = h.service.GetUnscannedWhatsApp(stream.Context())
+		if err != nil {
+			s := status.Convert(err)
+			if s.Code() == codes.NotFound {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			return err
+		}
+		res := &proto.WhatsApp{
+			Uuid:      wpp.UUID,
+			Qr:        wpp.QR,
+			Phone:     wpp.Phone,
+			Scanned:   wpp.Scanned,
+			Active:    wpp.Active,
+			Banned:    wpp.Banned,
+			CreatedAt: timestamppb.New(wpp.CreatedAt),
+			UpdatedAt: timestamppb.New(wpp.UpdatedAt),
+		}
+		err = stream.Send(res)
+		if err != nil {
+			return err
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil
 }
