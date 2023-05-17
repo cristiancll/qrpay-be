@@ -1,14 +1,19 @@
 package errors
 
 const (
-	CONNECTION_ERROR        string = "Erro de conexão"
-	UUID_REQUIRED           string = "UUID é obrigatório"
-	PHONE_REQUIRED          string = "Telefone é obrigatório"
-	PASSWORD_REQUIRED       string = "Senha é obrigatória"
-	NAME_REQUIRED           string = "Nome é obrigatório"
-	CATEGORY_REQUIRED       string = "Categoria é obrigatória"
-	ITEM_REQUIRED           string = "Item é obrigatório"
-	PRICE_REQUIRED          string = "Preço é obrigatório"
+	CONNECTION_ERROR  string = "Erro de conexão"
+	UUID_REQUIRED     string = "UUID é obrigatório"
+	PHONE_REQUIRED    string = "Telefone é obrigatório"
+	PASSWORD_REQUIRED string = "Senha é obrigatória"
+	NAME_REQUIRED     string = "Nome é obrigatório"
+	CATEGORY_REQUIRED string = "Categoria é obrigatória"
+	ITEM_REQUIRED     string = "Item é obrigatório"
+	PRICE_REQUIRED    string = "Preço é obrigatório"
+
+	SKU_REQUIRED             = "SKU é obrigatório"
+	QUANTITY_REQUIRED        = "Quantidade é obrigatória"
+	STOCK_CANNOT_BE_NEGATIVE = "Estoque não pode ser negativo"
+
 	AUTH_ERROR              string = "Erro de autenticação"
 	INTERNAL_ERROR          string = "Erro interno"
 	INVALID_PASSWORD        string = "Senha inválida"
@@ -16,6 +21,7 @@ const (
 	DISABLED_USER           string = "Usuário desabilitado"
 	VERIFICATION_ERROR      string = "Usuário não verificado"
 	USER_ALREADY_EXISTS     string = "Usuário já existe"
+	STOCK_ALREADY_EXISTS    string = "Estoque já existe"
 	WHATSAPP_ALREADY_EXISTS string = "Whatsapp já existe"
 	DATABASE_ERROR          string = "Erro de banco de dados"
 

@@ -30,5 +30,5 @@ func (s *Server) createServices(wppSystem wpp.WhatsAppSystem) {
 	s.services.saleItem = service.NewSaleItem(s.db, s.repos.saleItem)
 	s.services.retrieval = service.NewRetrieval(s.db, s.repos.retrieval)
 	s.services.sku = service.NewSKU(s.db, s.repos.sku, s.repos.item)
-	s.services.stock = service.NewStock(s.db, s.repos.stock)
+	s.services.stock = service.NewStock(s.db, s.repos.stock, s.repos.sku)
 }
