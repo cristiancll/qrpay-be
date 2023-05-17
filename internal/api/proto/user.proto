@@ -62,6 +62,15 @@ message UserListResponse {
     repeated User users = 1;
 }
 
+message UserUpdateRoleRequest {
+    string uuid = 1;
+    int64 role = 2;
+    bool enabled = 3;
+}
+message UserUpdateRoleResponse {
+    User user = 1;
+}
+
 service UserService {
     rpc Create(UserCreateRequest) returns (UserCreateResponse);
     rpc AdminCreated(UserAdminCreatedRequest) returns (UserAdminCreatedResponse);
@@ -69,4 +78,6 @@ service UserService {
     rpc Delete(UserDeleteRequest) returns (UserDeleteResponse);
     rpc Get(UserGetRequest) returns (UserGetResponse);
     rpc List(UserListRequest) returns (UserListResponse);
+    rpc UpdateRole(UserUpdateRoleRequest) returns (UserUpdateRoleResponse);
 }
+

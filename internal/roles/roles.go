@@ -69,3 +69,39 @@ func (r Role) UnsetSeller() Role {
 func (r Role) UnsetClient() Role {
 	return r &^ Client
 }
+
+func (r Role) ToggleRole(role Role, enabled bool) Role {
+	switch role {
+	case Client:
+		if enabled {
+			return r.SetClient()
+		} else {
+			return r.UnsetClient()
+		}
+	case Manager:
+		if enabled {
+			return r.SetManager()
+		} else {
+			return r.UnsetManager()
+		}
+	case Billing:
+		if enabled {
+			return r.SetBilling()
+		} else {
+			return r.UnsetBilling()
+		}
+	case Seller:
+		if enabled {
+			return r.SetSeller()
+		} else {
+			return r.UnsetSeller()
+		}
+	case Admin:
+		if enabled {
+			return r.SetAdmin()
+		} else {
+			return r.UnsetAdmin()
+		}
+	}
+	return r
+}

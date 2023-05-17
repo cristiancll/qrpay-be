@@ -17,10 +17,11 @@ import (
 type User interface {
 	Create(ctx context.Context, user *model.User, password string) error
 	Get(ctx context.Context, uuid string) (*model.User, error)
-	List(ctx context.Context) ([]model.User, error)
+	List(ctx context.Context) ([]*model.User, error)
 	Update(ctx context.Context, user *model.User, password string) error
 	Delete(ctx context.Context, uuid string) error
 	AdminCreated(ctx context.Context, user *model.User) error
+	UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error)
 }
 
 type user struct {
@@ -84,9 +85,23 @@ func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
 	panic("implement me")
 }
 
-func (s *user) List(ctx context.Context) ([]model.User, error) {
-	//TODO implement me
-	panic("implement me")
+func (s *user) List(ctx context.Context) ([]*model.User, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	users, err := s.repo.TGetAll(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return users, nil
 }
 
 func (s *user) Update(ctx context.Context, user *model.User, password string) error {
@@ -138,4 +153,29 @@ func (s *user) Delete(ctx context.Context, uuid string) error {
 func (s *user) AdminCreated(ctx context.Context, user *model.User) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+func (s *user) UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
+	if err != nil {
+		return nil, err
+	}
+	user.Role = user.Role.ToggleRole(role, enabled)
+
+	err = s.repo.TUpdate(ctx, tx, user)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return user, nil
 }

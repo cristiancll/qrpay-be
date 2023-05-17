@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/roles"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -18,6 +19,7 @@ type User interface {
 	Updater[model.User, proto.UserUpdateRequest, proto.UserUpdateResponse]
 	Deleter[model.User, proto.UserDeleteRequest, proto.UserDeleteResponse]
 	AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error)
+	UpdateRole(ctx context.Context, req *proto.UserUpdateRoleRequest) (*proto.UserUpdateRoleResponse, error)
 	proto.UserServiceServer
 }
 
@@ -68,8 +70,26 @@ func (h *user) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserG
 }
 
 func (h *user) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
-	res := &proto.UserListResponse{}
+	err := checkAdminAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
 
+	users, err := h.service.List(ctx)
+	if err != nil {
+		return nil, err
+	}
+	res := &proto.UserListResponse{}
+	for _, user := range users {
+		res.Users = append(res.Users, &proto.User{
+			Uuid:      user.UUID,
+			Name:      user.Name,
+			Role:      int64(user.Role),
+			Phone:     user.Phone,
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		})
+	}
 	return res, nil
 }
 
@@ -115,5 +135,37 @@ func (h *user) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto
 func (h *user) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
 	res := &proto.UserAdminCreatedResponse{}
 
+	return res, nil
+}
+
+func (h *user) UpdateRole(ctx context.Context, req *proto.UserUpdateRoleRequest) (*proto.UserUpdateRoleResponse, error) {
+	err := checkAdminAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Uuid == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+	}
+	if req.Role == 0 || req.Role < 0 {
+		return nil, status.Error(codes.InvalidArgument, errors.ROLE_REQUIRED)
+	}
+	role := roles.Role(req.Role)
+
+	user, err := h.service.UpdateRole(ctx, req.Uuid, role, req.Enabled)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &proto.UserUpdateRoleResponse{
+		User: &proto.User{
+			Uuid:      user.UUID,
+			Name:      user.Name,
+			Role:      int64(user.Role),
+			Phone:     user.Phone,
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		},
+	}
 	return res, nil
 }

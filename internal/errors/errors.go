@@ -3,6 +3,7 @@ package errors
 const (
 	CONNECTION_ERROR  string = "Erro de conexão"
 	UUID_REQUIRED     string = "UUID é obrigatório"
+	ROLE_REQUIRED     string = "Função é obrigatória"
 	PHONE_REQUIRED    string = "Telefone é obrigatório"
 	PASSWORD_REQUIRED string = "Senha é obrigatória"
 	NAME_REQUIRED     string = "Nome é obrigatório"
