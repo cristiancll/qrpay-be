@@ -25,6 +25,7 @@ type StockServiceClient interface {
 	Create(ctx context.Context, in *StockCreateRequest, opts ...grpc.CallOption) (*StockCreateResponse, error)
 	Update(ctx context.Context, in *StockUpdateRequest, opts ...grpc.CallOption) (*StockUpdateResponse, error)
 	Get(ctx context.Context, in *StockGetRequest, opts ...grpc.CallOption) (*StockGetResponse, error)
+	Delete(ctx context.Context, in *StockDeleteRequest, opts ...grpc.CallOption) (*StockDeleteResponse, error)
 	List(ctx context.Context, in *StockListRequest, opts ...grpc.CallOption) (*StockListResponse, error)
 }
 
@@ -63,6 +64,15 @@ func (c *stockServiceClient) Get(ctx context.Context, in *StockGetRequest, opts 
 	return out, nil
 }
 
+func (c *stockServiceClient) Delete(ctx context.Context, in *StockDeleteRequest, opts ...grpc.CallOption) (*StockDeleteResponse, error) {
+	out := new(StockDeleteResponse)
+	err := c.cc.Invoke(ctx, "/proto.StockService/Delete", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *stockServiceClient) List(ctx context.Context, in *StockListRequest, opts ...grpc.CallOption) (*StockListResponse, error) {
 	out := new(StockListResponse)
 	err := c.cc.Invoke(ctx, "/proto.StockService/List", in, out, opts...)
@@ -79,6 +89,7 @@ type StockServiceServer interface {
 	Create(context.Context, *StockCreateRequest) (*StockCreateResponse, error)
 	Update(context.Context, *StockUpdateRequest) (*StockUpdateResponse, error)
 	Get(context.Context, *StockGetRequest) (*StockGetResponse, error)
+	Delete(context.Context, *StockDeleteRequest) (*StockDeleteResponse, error)
 	List(context.Context, *StockListRequest) (*StockListResponse, error)
 	mustEmbedUnimplementedStockServiceServer()
 }
@@ -95,6 +106,9 @@ func (UnimplementedStockServiceServer) Update(context.Context, *StockUpdateReque
 }
 func (UnimplementedStockServiceServer) Get(context.Context, *StockGetRequest) (*StockGetResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedStockServiceServer) Delete(context.Context, *StockDeleteRequest) (*StockDeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedStockServiceServer) List(context.Context, *StockListRequest) (*StockListResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method List not implemented")
@@ -166,6 +180,24 @@ func _StockService_Get_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StockService_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StockDeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StockServiceServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.StockService/Delete",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StockServiceServer).Delete(ctx, req.(*StockDeleteRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StockService_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StockListRequest)
 	if err := dec(in); err != nil {
@@ -202,6 +234,10 @@ var StockService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Get",
 			Handler:    _StockService_Get_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _StockService_Delete_Handler,
 		},
 		{
 			MethodName: "List",

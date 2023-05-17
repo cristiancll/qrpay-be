@@ -13,6 +13,7 @@ import (
 type Stock interface {
 	Create(ctx context.Context, skuUUID string, quantity int64) (*model.Stock, error)
 	Update(ctx context.Context, uuid string, quantity int64) (*model.Stock, error)
+	Delete(ctx context.Context, uuid string) error
 	List(ctx context.Context) ([]*model.Stock, error)
 }
 
@@ -92,6 +93,30 @@ func (s *stock) Update(ctx context.Context, uuid string, quantity int64) (*model
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	return stock, nil
+}
+
+func (s *stock) Delete(ctx context.Context, uuid string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	stock, err := s.repo.TGetByUUID(ctx, tx, uuid)
+	if err != nil {
+		return err
+	}
+	err = s.repo.TDelete(ctx, tx, stock)
+	if err != nil {
+		return err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return nil
+
 }
 
 func (s *stock) List(ctx context.Context) ([]*model.Stock, error) {

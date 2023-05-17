@@ -13,6 +13,7 @@ import (
 type Stock interface {
 	Creater[service.Stock, proto.StockCreateRequest, proto.StockCreateResponse]
 	Updater[service.Stock, proto.StockUpdateRequest, proto.StockUpdateResponse]
+	Deleter[service.Stock, proto.StockDeleteRequest, proto.StockDeleteResponse]
 	Lister[service.Stock, proto.StockListRequest, proto.StockListResponse]
 	proto.StockServiceServer
 }
@@ -89,6 +90,22 @@ func (s stock) Update(ctx context.Context, req *proto.StockUpdateRequest) (*prot
 		},
 	}
 	return res, nil
+}
+
+func (s *stock) Delete(ctx context.Context, req *proto.StockDeleteRequest) (*proto.StockDeleteResponse, error) {
+	err := checkAdminAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if req.Uuid == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+	}
+	err = s.service.Delete(ctx, req.Uuid)
+	if err != nil {
+		return nil, err
+	}
+	return &proto.StockDeleteResponse{}, nil
+
 }
 
 func (s stock) List(ctx context.Context, req *proto.StockListRequest) (*proto.StockListResponse, error) {

@@ -32,8 +32,8 @@ const (
 								name VARCHAR(255) NOT NULL UNIQUE, 
 								created_at TIMESTAMP NOT NULL, 
 								updated_at TIMESTAMP NOT NULL);`
-	createCategoryQuery    = "INSERT INTO categories (uuid, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at"
-	updateCategoryQuery    = "UPDATE categories SET name = $2, updated_at = $3 WHERE id = $1 RETURNING updated_at"
+	createCategoryQuery    = "INSERT INTO categories (uuid, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
+	updateCategoryQuery    = "UPDATE categories SET name = $2, updated_at = $3 WHERE id = $1"
 	deleteCategoryQuery    = "DELETE FROM categories WHERE id = $1"
 	getCategoryByIDQuery   = "SELECT id, uuid, name, created_at, updated_at FROM categories WHERE id = $1"
 	getCategoryByUUIDQuery = "SELECT id, uuid, name, created_at, updated_at FROM categories WHERE uuid = $1"

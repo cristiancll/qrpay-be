@@ -18,6 +18,7 @@ type Stock interface {
 	TUpdater[model.Stock]
 	TGetterAll[model.Stock]
 	TGetterByUUID[model.Stock]
+	TDeleter[model.Stock]
 	TCountBySKU(ctx context.Context, tx pgx.Tx, skuID int64) error
 }
 
@@ -42,6 +43,7 @@ const (
 	getStockByUUIDQuery = "SELECT id, uuid, sku_id, quantity, created_at, updated_at FROM stocks WHERE uuid = $1"
 	getAllStocksQuery   = "SELECT s.id, s.uuid, sk.uuid, sk.name, sk.created_at, sk.updated_at, s.quantity, s.created_at, s.updated_at FROM stocks AS s JOIN skus AS sk ON (s.sku_id = sk.id)"
 	countBySKUQuery     = "SELECT COUNT(*) FROM stocks WHERE sku_id = $1"
+	deleteStockQuery    = "DELETE FROM stocks WHERE id = $1"
 )
 
 func (r *stock) Migrate(ctx context.Context) error {
@@ -90,6 +92,14 @@ func (r *stock) TCountBySKU(ctx context.Context, tx pgx.Tx, skuID int64) error {
 	}
 	if count > 0 {
 		return status.Error(codes.Internal, errors.STOCK_ALREADY_EXISTS)
+	}
+	return nil
+}
+
+func (r *stock) TDelete(ctx context.Context, tx pgx.Tx, stock *model.Stock) error {
+	_, err := tx.Exec(ctx, deleteStockQuery, stock.ID)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
 	return nil
 }
