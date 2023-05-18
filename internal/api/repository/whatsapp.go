@@ -25,6 +25,7 @@ type WhatsApp interface {
 	TGetUnscannedWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error)
 	ClearUnusedWhatsApp(ctx context.Context) error
 	TGetActiveWhatsApp(ctx context.Context, tx pgx.Tx) (*model.WhatsApp, error)
+	GetByPhone(ctx context.Context, phone string) (*model.WhatsApp, error)
 }
 
 type whatsApp struct {
@@ -63,7 +64,32 @@ const (
 	getActiveWhatsappQuery    = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE active = TRUE LIMIT 1`
 
 	countWhatsappByQRCodeQuery = `SELECT COUNT(*) FROM whatsapps WHERE qr = $1`
+
+	getWhatsappByPhoneQuery = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE phone = $1`
 )
+
+func (r *whatsApp) GetByPhone(ctx context.Context, phone string) (*model.WhatsApp, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx, getWhatsappByPhoneQuery, phone)
+	whats := &model.WhatsApp{}
+	err = row.Scan(&whats.ID, &whats.UUID, &whats.QR, &whats.Phone, &whats.Scanned, &whats.Active, &whats.Banned, &whats.CreatedAt, &whats.UpdatedAt)
+	if err == pgx.ErrNoRows {
+		return nil, status.Error(codes.NotFound, errors.WHATSAPP_NOT_FOUND)
+	} else if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return whats, nil
+}
 
 func (r *whatsApp) ClearUnusedWhatsApp(ctx context.Context) error {
 	_, err := r.db.Exec(ctx, clearUnusedWhatsAppQuery)
@@ -157,16 +183,19 @@ func (r *whatsApp) Update(ctx context.Context, whats *model.WhatsApp) error {
 	}
 	defer tx.Rollback(ctx)
 	whats.UpdatedAt = time.Now().UTC()
-	_, err = tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Scanned, whats.Active, whats.Banned, whats.UpdatedAt)
+	tag, err := tx.Exec(ctx, updateWhatsappQuery, whats.ID, whats.QR, whats.Phone, whats.Scanned, whats.Active, whats.Banned, whats.UpdatedAt)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	if tag.RowsAffected() == 0 {
+		return status.Error(codes.NotFound, errors.WHATSAPP_NOT_FOUND)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-	return status.Error(codes.Unimplemented, "method GetAll not implemented")
+	return nil
 }
 
 func (r *whatsApp) Delete(ctx context.Context, whats *model.WhatsApp) error {
@@ -185,7 +214,7 @@ func (r *whatsApp) Delete(ctx context.Context, whats *model.WhatsApp) error {
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
 	}
-	return status.Error(codes.Unimplemented, "method GetAll not implemented")
+	return nil
 }
 
 func (r *whatsApp) DeleteByQR(ctx context.Context, qrCode string) error {
