@@ -15,6 +15,7 @@ import (
 type SKU interface {
 	Migrater
 	TCRUDer[model.SKU]
+	TGetAllByUUIDs(ctx context.Context, tx pgx.Tx, uuids []string) ([]*model.SKU, error)
 }
 
 type sku struct {
@@ -35,13 +36,32 @@ const (
     		price INT NOT NULL,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`
-	createSKUQuery    = "INSERT INTO skus (uuid, item_id, name, description, price, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-	updateSKUQuery    = "UPDATE skus SET item_id = $2, name = $3, description = $4, price = $5, updated_at = $6 WHERE id = $1"
-	deleteSKUQuery    = "DELETE FROM skus WHERE id = $1"
-	getSKUByIDQuery   = "SELECT id, uuid, item_id, name, description, price, created_at, updated_at FROM skus WHERE id = $1"
-	getSKUByUUIDQuery = "SELECT id, uuid, item_id, name, description, price, created_at, updated_at FROM skus WHERE uuid = $1"
-	getAllSKUsQuery   = "SELECT s.id, s.uuid, i.id, i.uuid, i.category_id, i.name, i.created_at, i.updated_at, s.name, s.description, s.price, s.created_at, s.updated_at FROM skus AS s JOIN items AS i ON s.item_id = i.id"
+	createSKUQuery         = "INSERT INTO skus (uuid, item_id, name, description, price, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
+	updateSKUQuery         = "UPDATE skus SET item_id = $2, name = $3, description = $4, price = $5, updated_at = $6 WHERE id = $1"
+	deleteSKUQuery         = "DELETE FROM skus WHERE id = $1"
+	getSKUByIDQuery        = "SELECT id, uuid, item_id, name, description, price, created_at, updated_at FROM skus WHERE id = $1"
+	getSKUByUUIDQuery      = "SELECT id, uuid, item_id, name, description, price, created_at, updated_at FROM skus WHERE uuid = $1"
+	getAllSKUsQuery        = "SELECT s.id, s.uuid, i.id, i.uuid, i.category_id, i.name, i.created_at, i.updated_at, s.name, s.description, s.price, s.created_at, s.updated_at FROM skus AS s JOIN items AS i ON s.item_id = i.id"
+	getAllSKUsByUUIDsQuery = "SELECT id, uuid, item_id, name, description, price, created_at, updated_at FROM skus WHERE uuid = ANY($1)"
 )
+
+func (s *sku) TGetAllByUUIDs(ctx context.Context, tx pgx.Tx, uuids []string) ([]*model.SKU, error) {
+	skus := make([]*model.SKU, 0)
+	rows, err := tx.Query(ctx, getAllSKUsByUUIDsQuery, uuids)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		sku := &model.SKU{}
+		err := rows.Scan(&sku.ID, &sku.UUID, &sku.Item.ID, &sku.Name, &sku.Description, &sku.Price, &sku.CreatedAt, &sku.UpdatedAt)
+		if err != nil {
+			return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		}
+		skus = append(skus, sku)
+	}
+	return skus, nil
+}
 
 func (s sku) Migrate(ctx context.Context) error {
 	_, err := s.db.Exec(ctx, createSKUTableQuery)

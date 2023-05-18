@@ -23,7 +23,7 @@ type sku struct {
 	itemRepo repository.Item
 }
 
-func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item, categoryRepo repository.Category) SKU {
+func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item) SKU {
 	return &sku{
 		pool:     pool,
 		repo:     repo,
