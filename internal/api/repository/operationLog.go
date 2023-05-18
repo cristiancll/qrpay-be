@@ -32,8 +32,8 @@ const (
     		operation VARCHAR(255) NOT NULL,
     		operationId INT NOT NULL,
     		metadata JSONB,
-    		createdAt TIMESTAMP NOT NULL,
-    		updatedAt TIMESTAMP NOT NULL)`
+    		created_at TIMESTAMP NOT NULL,
+    		updated_at TIMESTAMP NOT NULL)`
 )
 
 func (r *operationLog) Migrate(ctx context.Context) error {

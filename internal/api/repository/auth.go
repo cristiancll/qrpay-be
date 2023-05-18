@@ -40,7 +40,7 @@ const (
 	updateAuthQuery  = "UPDATE auths SET password = $2, verified = $3, disabled = $4, reset_token = $5, last_login = $6, updated_at = $7 WHERE id = $1"
 	deleteAuthQuery  = "DELETE FROM auths WHERE id = $1"
 	getAuthByIDQuery = "SELECT id, user_id, password, verified, disabled, reset_token, last_login, created_at, updated_at FROM auths WHERE id = $1"
-	verifyUserQuery  = "UPDATE auths SET verified = TRUE, updatedAt = $2 WHERE user_id = $1"
+	verifyUserQuery  = "UPDATE auths SET verified = TRUE, updated_at = $2 WHERE user_id = $1"
 )
 
 func (r *auth) VerifyUser(ctx context.Context, tx pgx.Tx, user *model.User) error {
