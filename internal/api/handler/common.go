@@ -26,6 +26,24 @@ type Deleter[E any, REQ any, RES any] interface {
 	Delete(context.Context, *REQ) (*RES, error)
 }
 
+func getUUIDFromContext(ctx context.Context) (string, error) {
+	ctxUUID := ctx.Value("UUID")
+	if ctxUUID == nil {
+		return "", status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+	}
+
+	stringUUID, ok := ctxUUID.(string)
+	if !ok {
+		return "", status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+	}
+
+	if err := checkValidUUID(stringUUID); err != nil {
+		return "", err
+	}
+
+	return stringUUID, nil
+}
+
 func getRoleFromContext(ctx context.Context) (roles.Role, error) {
 	ctxRole := ctx.Value("Role")
 	if ctxRole == nil {
