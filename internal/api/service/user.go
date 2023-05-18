@@ -81,8 +81,22 @@ func (s *user) Create(ctx context.Context, user *model.User, password string) er
 }
 
 func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
-	//TODO implement me
-	panic("implement me")
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return user, nil
 }
 
 func (s *user) List(ctx context.Context) ([]*model.User, error) {

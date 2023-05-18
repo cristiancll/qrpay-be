@@ -11,9 +11,10 @@ const (
 	ITEM_REQUIRED     string = "Item é obrigatório"
 	PRICE_REQUIRED    string = "Preço é obrigatório"
 
-	SKU_REQUIRED             = "SKU é obrigatório"
-	QUANTITY_REQUIRED        = "Quantidade é obrigatória"
-	STOCK_CANNOT_BE_NEGATIVE = "Estoque não pode ser negativo"
+	INVALID_UUID             string = "UUID inválido"
+	SKU_REQUIRED                    = "SKU é obrigatório"
+	QUANTITY_REQUIRED               = "Quantidade é obrigatória"
+	STOCK_CANNOT_BE_NEGATIVE        = "Estoque não pode ser negativo"
 
 	AUTH_ERROR              string = "Erro de autenticação"
 	INTERNAL_ERROR          string = "Erro interno"

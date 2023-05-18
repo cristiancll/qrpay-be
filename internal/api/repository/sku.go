@@ -51,7 +51,7 @@ func (s sku) Migrate(ctx context.Context) error {
 	return err
 }
 
-func (s sku) TCreate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
+func (s *sku) TCreate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	sku.UUID = uuid.New().String()
 	sku.CreatedAt = time.Now().UTC()
 	sku.UpdatedAt = time.Now().UTC()
@@ -62,7 +62,7 @@ func (s sku) TCreate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	return nil
 }
 
-func (s sku) TUpdate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
+func (s *sku) TUpdate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	sku.UpdatedAt = time.Now().UTC()
 	_, err := tx.Exec(ctx, updateSKUQuery, sku.ID, sku.Item.ID, sku.Name, sku.Description, sku.Price, sku.UpdatedAt)
 	if err != nil {
@@ -71,7 +71,7 @@ func (s sku) TUpdate(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	return nil
 }
 
-func (s sku) TDelete(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
+func (s *sku) TDelete(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	_, err := tx.Exec(ctx, deleteSKUQuery, sku.ID)
 	if err != nil {
 		return status.Error(codes.Internal, errors.DATABASE_ERROR)
@@ -79,7 +79,7 @@ func (s sku) TDelete(ctx context.Context, tx pgx.Tx, sku *model.SKU) error {
 	return nil
 }
 
-func (s sku) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.SKU, error) {
+func (s *sku) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.SKU, error) {
 	sku := &model.SKU{}
 	err := tx.QueryRow(ctx, getSKUByIDQuery, id).Scan(&sku.ID, &sku.UUID, &sku.Item.ID, &sku.Name, &sku.Description, &sku.Price, &sku.CreatedAt, &sku.UpdatedAt)
 	if err != nil {
@@ -89,7 +89,7 @@ func (s sku) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.SKU, err
 
 }
 
-func (s sku) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.SKU, error) {
+func (s *sku) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.SKU, error) {
 	sku := &model.SKU{}
 	err := tx.QueryRow(ctx, getSKUByUUIDQuery, uuid).Scan(&sku.ID, &sku.UUID, &sku.Item.ID, &sku.Name, &sku.Description, &sku.Price, &sku.CreatedAt, &sku.UpdatedAt)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s sku) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.SKU
 	return sku, nil
 }
 
-func (s sku) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.SKU, error) {
+func (s *sku) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.SKU, error) {
 	skus := make([]*model.SKU, 0)
 	rows, err := tx.Query(ctx, getAllSKUsQuery)
 	if err != nil {

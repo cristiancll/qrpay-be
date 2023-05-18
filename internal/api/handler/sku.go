@@ -28,7 +28,7 @@ func NewSKU(s service.SKU) SKU {
 	return &sku{service: s}
 }
 
-func (s sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.SKUCreateResponse, error) {
+func (s *sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.SKUCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (s sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.SK
 	return res, nil
 }
 
-func (s sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.SKUUpdateResponse, error) {
+func (s *sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.SKUUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
 		return nil, err
@@ -119,7 +119,7 @@ func (s sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.SK
 	return res, nil
 }
 
-func (s sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.SKUDeleteResponse, error) {
+func (s *sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.SKUDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func (s sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.SK
 	return &proto.SKUDeleteResponse{}, nil
 }
 
-func (s sku) List(ctx context.Context, req *proto.SKUListRequest) (*proto.SKUListResponse, error) {
+func (s *sku) List(ctx context.Context, req *proto.SKUListRequest) (*proto.SKUListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
 		return nil, err

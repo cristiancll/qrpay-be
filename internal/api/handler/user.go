@@ -64,16 +64,35 @@ func (h *user) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto
 }
 
 func (h *user) Get(ctx context.Context, req *proto.UserGetRequest) (*proto.UserGetResponse, error) {
-	res := &proto.UserGetResponse{}
+	err := checkStaffAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = checkValidUUID(req.Uuid)
+	if err != nil {
+		return nil, err
+	}
+	user, err := h.service.Get(ctx, req.Uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	res := &proto.UserGetResponse{
+		User: &proto.User{
+			Uuid:      user.UUID,
+			Name:      user.Name,
+			Role:      int64(user.Role),
+			Phone:     user.Phone,
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		},
+	}
 
 	return res, nil
 }
 
 func (h *user) List(ctx context.Context, req *proto.UserListRequest) (*proto.UserListResponse, error) {
 	err := checkAdminAuthorization(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	users, err := h.service.List(ctx)
 	if err != nil {

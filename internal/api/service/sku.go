@@ -23,7 +23,7 @@ type sku struct {
 	itemRepo repository.Item
 }
 
-func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item) SKU {
+func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item, categoryRepo repository.Category) SKU {
 	return &sku{
 		pool:     pool,
 		repo:     repo,
@@ -31,7 +31,7 @@ func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item) S
 	}
 }
 
-func (s sku) Create(ctx context.Context, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
+func (s *sku) Create(ctx context.Context, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -60,7 +60,7 @@ func (s sku) Create(ctx context.Context, itemUUID string, name string, descripti
 	return sku, nil
 }
 
-func (s sku) Update(ctx context.Context, uuid string, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
+func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -92,7 +92,7 @@ func (s sku) Update(ctx context.Context, uuid string, itemUUID string, name stri
 	return sku, nil
 }
 
-func (s sku) Delete(ctx context.Context, uuid string) error {
+func (s *sku) Delete(ctx context.Context, uuid string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
@@ -115,7 +115,7 @@ func (s sku) Delete(ctx context.Context, uuid string) error {
 	return nil
 }
 
-func (s sku) List(ctx context.Context) ([]*model.SKU, error) {
+func (s *sku) List(ctx context.Context) ([]*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
