@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -17,15 +18,17 @@ type sale struct {
 	skuRepo      repository.SKU
 	userRepo     repository.User
 	saleItemRepo repository.SaleItem
+	wpp          wpp.WhatsAppSystem
 }
 
-func NewSale(pool *pgxpool.Pool, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem) Sale {
+func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem) Sale {
 	return &sale{
 		pool:         pool,
 		repo:         r,
 		skuRepo:      skuRepo,
 		userRepo:     userRepo,
 		saleItemRepo: saleItemRepo,
+		wpp:          wpp,
 	}
 }
 
@@ -96,5 +99,6 @@ func (s sale) Create(ctx context.Context, userUUID string, sellerUUID string, sa
 	if err != nil {
 		return nil, err
 	}
+	go s.wpp.SendText(user, user.NewSale(sale, saleItems))
 	return sale, nil
 }
