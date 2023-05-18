@@ -12,10 +12,15 @@ message Sale {
   string uuid = 1;
   User user = 2;
   User seller = 3;
-  int64 amount = 4;
+  int64 total = 4;
   bool paid = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+}
+
+message SaleUnit {
+  string skuUUID = 1;
+  int64 quantity = 2;
 }
 
 service SaleService {
@@ -27,9 +32,8 @@ service SaleService {
 }
 
 message SaleCreateRequest {
-  User user = 1;
-  User seller = 2;
-  int64 amount = 3;
+  string userUUID = 1;
+  repeated SaleUnit units = 2;
 }
 message SaleCreateResponse {
   Sale sale = 1;
@@ -52,7 +56,7 @@ message SaleUpdateRequest {
   string uuid = 1;
   User user = 2;
   User seller = 3;
-  int64 amount = 4;
+  int64 total = 4;
   bool paid = 5;
 }
 message SaleUpdateResponse {
