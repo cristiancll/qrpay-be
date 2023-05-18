@@ -11,7 +11,9 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
+	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -122,4 +124,32 @@ func DeleteJWTCookie(ctx context.Context) error {
 		return status.Error(codes.Internal, errors.CONNECTION_ERROR)
 	}
 	return nil
+}
+
+const (
+	letterBytes  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	numberBytes  = "0123456789"
+	specialBytes = "!@#$%^&*()-_=+[]{}<>?/|"
+)
+
+func RandomPassword() string {
+	seed := rand.NewSource(time.Now().UnixNano())
+	random := rand.New(seed)
+
+	var passwordBuilder strings.Builder
+
+	for i := 0; i < 20; i++ {
+		switch i % 4 {
+		case 0:
+			passwordBuilder.WriteByte(letterBytes[random.Intn(len(letterBytes))])
+		case 1:
+			passwordBuilder.WriteByte(numberBytes[random.Intn(len(numberBytes))])
+		case 2:
+			passwordBuilder.WriteByte(specialBytes[random.Intn(len(specialBytes))])
+		case 3:
+			passwordBuilder.WriteByte(letterBytes[random.Intn(len(letterBytes))])
+		}
+	}
+
+	return passwordBuilder.String()
 }
