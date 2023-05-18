@@ -125,6 +125,11 @@ func (s *whatsAppSystem) Start() error {
 		if err != nil {
 			return err
 		}
+		whats, err := s.repo.GetByPhone(s.ctx, s.client.Store.ID.User)
+		if err != nil {
+			return err
+		}
+		s.whatsapp = whats
 		return nil
 	}
 	qrChan, _ = s.client.GetQRChannel(s.ctx)
@@ -140,23 +145,41 @@ func (s *whatsAppSystem) eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.PairSuccess:
 		s.whatsapp.Scanned = true
-		s.repo.Update(s.ctx, s.whatsapp)
+		err := s.repo.Update(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 	case *events.PairError:
-		s.repo.Delete(s.ctx, s.whatsapp)
+		err := s.repo.Delete(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 	case *events.Connected:
 		s.whatsapp.Phone = &s.device.ID.User
 		s.whatsapp.Active = true
-		s.repo.Update(s.ctx, s.whatsapp)
+		err := s.repo.Update(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 	case *events.Disconnected:
-		s.repo.Delete(s.ctx, s.whatsapp)
+		err := s.repo.Delete(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 		s.restart()
 	case *events.TemporaryBan:
 		s.whatsapp.Banned = true
 		s.whatsapp.Active = false
-		s.repo.Update(s.ctx, s.whatsapp)
+		err := s.repo.Update(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 		s.restart()
 	case *events.LoggedOut:
-		s.repo.Delete(s.ctx, s.whatsapp)
+		err := s.repo.Delete(s.ctx, s.whatsapp)
+		if err != nil {
+			// TODO: log error
+		}
 		s.restart()
 	case *events.Message:
 		phone := v.Info.MessageSource.Sender.User

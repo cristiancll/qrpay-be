@@ -42,11 +42,7 @@ func (h *user) Create(ctx context.Context, req *proto.UserCreateRequest) (*proto
 	if req.Phone == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
 	}
-	user := &model.User{
-		Name:  req.Name,
-		Phone: req.Phone,
-	}
-	err := h.service.Create(ctx, user, req.Password)
+	user, err := h.service.Create(ctx, req.Name, req.Phone, req.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +148,26 @@ func (h *user) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto
 }
 
 func (h *user) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
-	res := &proto.UserAdminCreatedResponse{}
-
+	if req.Name == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+	}
+	if req.Phone == "" {
+		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
+	}
+	user, err := h.service.AdminCreated(ctx, req.Name, req.Phone)
+	if err != nil {
+		return nil, err
+	}
+	res := &proto.UserAdminCreatedResponse{
+		User: &proto.User{
+			Uuid:      user.UUID,
+			Name:      user.Name,
+			Role:      int64(user.Role),
+			Phone:     user.Phone,
+			CreatedAt: timestamppb.New(user.CreatedAt),
+			UpdatedAt: timestamppb.New(user.UpdatedAt),
+		},
+	}
 	return res, nil
 }
 

@@ -15,12 +15,12 @@ import (
 )
 
 type User interface {
-	Create(ctx context.Context, user *model.User, password string) error
+	Create(ctx context.Context, name string, phone string, password string) (*model.User, error)
 	Get(ctx context.Context, uuid string) (*model.User, error)
 	List(ctx context.Context) ([]*model.User, error)
 	Update(ctx context.Context, user *model.User, password string) error
 	Delete(ctx context.Context, uuid string) error
-	AdminCreated(ctx context.Context, user *model.User) error
+	AdminCreated(ctx context.Context, name string, phone string) (*model.User, error)
 	UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error)
 }
 
@@ -40,28 +40,32 @@ func NewUser(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.User, auth
 	}
 }
 
-func (s *user) Create(ctx context.Context, user *model.User, password string) error {
+func (s *user) Create(ctx context.Context, name string, phone string, password string) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
 
-	user.Phone = common.SanitizePhone(user.Phone)
+	phone = common.SanitizePhone(phone)
 
-	err = s.repo.CountByPhone(ctx, tx, user.Phone)
+	err = s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
-		return status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
 	}
 
-	user.Role = roles.Client
+	user := &model.User{
+		Name:  name,
+		Phone: phone,
+		Role:  roles.Client,
+	}
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, err
 	}
 	passwordHash, err := security.HashPassword(password)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	auth := &model.Auth{
 		UserID:   user.ID,
@@ -69,15 +73,15 @@ func (s *user) Create(ctx context.Context, user *model.User, password string) er
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	go s.wpp.SendImage(user, user.WelcomeMessage())
-	return nil
+	return user, nil
 }
 
 func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
@@ -164,9 +168,49 @@ func (s *user) Delete(ctx context.Context, uuid string) error {
 	panic("implement me")
 }
 
-func (s *user) AdminCreated(ctx context.Context, user *model.User) error {
-	//TODO implement me
-	panic("implement me")
+func (s *user) AdminCreated(ctx context.Context, name string, phone string) (*model.User, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	phone = common.SanitizePhone(phone)
+
+	err = s.repo.CountByPhone(ctx, tx, phone)
+	if err != nil {
+		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+	}
+
+	user := &model.User{
+		Name:  name,
+		Phone: phone,
+		Role:  roles.Client,
+	}
+	err = s.repo.TCreate(ctx, tx, user)
+	if err != nil {
+		return nil, err
+	}
+	// This password will be changed by the user upon first login
+	passwordHash, err := security.HashPassword(security.RandomPassword())
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	auth := &model.Auth{
+		UserID:   user.ID,
+		Password: passwordHash,
+	}
+	err = s.authRepo.TCreate(ctx, tx, auth)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	go s.wpp.SendImage(user, user.WelcomeMessage())
+	return user, nil
 }
 
 func (s *user) UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error) {
