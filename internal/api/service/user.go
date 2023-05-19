@@ -20,23 +20,25 @@ type User interface {
 	List(ctx context.Context) ([]*model.User, error)
 	Update(ctx context.Context, user *model.User, password string) error
 	Delete(ctx context.Context, uuid string) error
-	AdminCreated(ctx context.Context, name string, phone string) (*model.User, error)
+	AdminCreated(ctx context.Context, name string, phone string, sellerUUID string) (*model.User, error)
 	UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error)
 }
 
 type user struct {
-	pool     *pgxpool.Pool
-	repo     repository.User
-	authRepo repository.Auth
-	wpp      wpp.WhatsAppSystem
+	pool      *pgxpool.Pool
+	repo      repository.User
+	authRepo  repository.Auth
+	wpp       wpp.WhatsAppSystem
+	opLogRepo repository.OperationLog
 }
 
-func NewUser(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.User, authRepo repository.Auth) User {
+func NewUser(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.User, authRepo repository.Auth, opLogRepo repository.OperationLog) User {
 	return &user{
-		pool:     pool,
-		repo:     r,
-		authRepo: authRepo,
-		wpp:      wpp,
+		pool:      pool,
+		repo:      r,
+		authRepo:  authRepo,
+		wpp:       wpp,
+		opLogRepo: opLogRepo,
 	}
 }
 
@@ -168,12 +170,17 @@ func (s *user) Delete(ctx context.Context, uuid string) error {
 	panic("implement me")
 }
 
-func (s *user) AdminCreated(ctx context.Context, name string, phone string) (*model.User, error) {
+func (s *user) AdminCreated(ctx context.Context, name string, phone string, sellerUUID string) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
 	defer tx.Rollback(ctx)
+
+	seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
+	if err == nil {
+		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
+	}
 
 	phone = common.SanitizePhone(phone)
 
@@ -209,6 +216,15 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string) (*mo
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
+
+	opLog := &model.OperationLog{
+		User:        *user,
+		Seller:      *seller,
+		Operation:   "User",
+		OperationId: user.ID,
+	}
+	_ = s.opLogRepo.Create(context.Background(), opLog)
+
 	go s.wpp.SendImage(user, user.WelcomeMessage())
 	return user, nil
 }

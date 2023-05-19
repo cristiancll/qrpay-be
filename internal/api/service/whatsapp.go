@@ -19,16 +19,18 @@ type WhatsApp interface {
 }
 
 type whatsApp struct {
-	pool *pgxpool.Pool
-	repo repository.WhatsApp
-	wpp  wpp.WhatsAppSystem
+	pool      *pgxpool.Pool
+	repo      repository.WhatsApp
+	wpp       wpp.WhatsAppSystem
+	opLogRepo repository.OperationLog
 }
 
-func NewWhatsApp(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, repo repository.WhatsApp) WhatsApp {
+func NewWhatsApp(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, repo repository.WhatsApp, opLogRepo repository.OperationLog) WhatsApp {
 	return &whatsApp{
-		pool: pool,
-		repo: repo,
-		wpp:  wpp,
+		pool:      pool,
+		repo:      repo,
+		wpp:       wpp,
+		opLogRepo: opLogRepo,
 	}
 }
 

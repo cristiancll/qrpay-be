@@ -4,15 +4,16 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/errors"
-	"github.com/jackc/pgx/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"time"
 )
 
 type OperationLog interface {
 	Migrater
-	TCRUDer[model.OperationLog]
+	Creater[model.OperationLog]
 }
 
 type operationLog struct {
@@ -34,6 +35,7 @@ const (
     		metadata JSONB,
     		created_at TIMESTAMP NOT NULL,
     		updated_at TIMESTAMP NOT NULL)`
+	createOperationLogQuery = `INSERT INTO operation_logs(uuid, userId, sellerId, operation, operationId, metadata, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 )
 
 func (r *operationLog) Migrate(ctx context.Context) error {
@@ -44,32 +46,16 @@ func (r *operationLog) Migrate(ctx context.Context) error {
 	return nil
 }
 
-func (r *operationLog) TCreate(ctx context.Context, tx pgx.Tx, log *model.OperationLog) error {
-	//TODO implement me
-	panic("implement me")
-}
+func (r *operationLog) Create(ctx context.Context, log *model.OperationLog) error {
+	log.UUID = uuid.New().String()
+	log.CreatedAt = time.Now().UTC()
+	log.UpdatedAt = time.Now().UTC()
+	log.Metadata = "{}"
 
-func (r *operationLog) TUpdate(ctx context.Context, tx pgx.Tx, log *model.OperationLog) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *operationLog) TDelete(ctx context.Context, tx pgx.Tx, log *model.OperationLog) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *operationLog) TGetById(ctx context.Context, tx pgx.Tx, i int64) (*model.OperationLog, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *operationLog) TGetByUUID(ctx context.Context, tx pgx.Tx, s string) (*model.OperationLog, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (r *operationLog) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.OperationLog, error) {
-	//TODO implement me
-	panic("implement me")
+	row := r.db.QueryRow(ctx, createOperationLogQuery, log.UUID, log.User.ID, log.Seller.ID, log.Operation, log.OperationId, log.Metadata, log.CreatedAt, log.UpdatedAt)
+	err := row.Scan(&log.ID)
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }

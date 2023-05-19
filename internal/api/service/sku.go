@@ -18,16 +18,18 @@ type SKU interface {
 }
 
 type sku struct {
-	pool     *pgxpool.Pool
-	repo     repository.SKU
-	itemRepo repository.Item
+	pool      *pgxpool.Pool
+	repo      repository.SKU
+	itemRepo  repository.Item
+	opLogRepo repository.OperationLog
 }
 
-func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item) SKU {
+func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item, opLogRepo repository.OperationLog) SKU {
 	return &sku{
-		pool:     pool,
-		repo:     repo,
-		itemRepo: itemRepo,
+		pool:      pool,
+		repo:      repo,
+		itemRepo:  itemRepo,
+		opLogRepo: opLogRepo,
 	}
 }
 

@@ -21,13 +21,15 @@ type item struct {
 	pool         *pgxpool.Pool
 	repo         repository.Item
 	categoryRepo repository.Category
+	opLogRepo    repository.OperationLog
 }
 
-func NewItem(pool *pgxpool.Pool, r repository.Item, categoryRepo repository.Category) Item {
+func NewItem(pool *pgxpool.Pool, r repository.Item, categoryRepo repository.Category, opLogRepo repository.OperationLog) Item {
 	return &item{
 		pool:         pool,
 		repo:         r,
 		categoryRepo: categoryRepo,
+		opLogRepo:    opLogRepo,
 	}
 }
 

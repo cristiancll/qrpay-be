@@ -22,9 +22,10 @@ type sale struct {
 	saleItemRepo repository.SaleItem
 	stockRepo    repository.Stock
 	wpp          wpp.WhatsAppSystem
+	opLogRepo    repository.OperationLog
 }
 
-func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem, stockRepo repository.Stock) Sale {
+func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem, stockRepo repository.Stock, opLogRepo repository.OperationLog) Sale {
 	return &sale{
 		pool:         pool,
 		repo:         r,
@@ -33,6 +34,7 @@ func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuR
 		saleItemRepo: saleItemRepo,
 		stockRepo:    stockRepo,
 		wpp:          wpp,
+		opLogRepo:    opLogRepo,
 	}
 }
 
@@ -99,6 +101,13 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 				return nil, err
 			}
 			saleItems = append(saleItems, &saleItem)
+			opLog := &model.OperationLog{
+				User:        *user,
+				Seller:      *seller,
+				Operation:   "SaleItem",
+				OperationId: saleItem.ID,
+			}
+			_ = s.opLogRepo.Create(context.Background(), opLog)
 		}
 	}
 

@@ -148,13 +148,21 @@ func (h *user) Delete(ctx context.Context, req *proto.UserDeleteRequest) (*proto
 }
 
 func (h *user) AdminCreated(ctx context.Context, req *proto.UserAdminCreatedRequest) (*proto.UserAdminCreatedResponse, error) {
+	err := checkStaffAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sellerUUID, err := getUUIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if req.Name == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
 	}
 	if req.Phone == "" {
 		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
 	}
-	user, err := h.service.AdminCreated(ctx, req.Name, req.Phone)
+	user, err := h.service.AdminCreated(ctx, req.Name, req.Phone, sellerUUID)
 	if err != nil {
 		return nil, err
 	}

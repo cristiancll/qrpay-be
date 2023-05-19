@@ -18,16 +18,18 @@ type Stock interface {
 }
 
 type stock struct {
-	pool    *pgxpool.Pool
-	repo    repository.Stock
-	skuRepo repository.SKU
+	pool      *pgxpool.Pool
+	repo      repository.Stock
+	skuRepo   repository.SKU
+	opLogRepo repository.OperationLog
 }
 
-func NewStock(pool *pgxpool.Pool, r repository.Stock, skuRepo repository.SKU) Stock {
+func NewStock(pool *pgxpool.Pool, r repository.Stock, skuRepo repository.SKU, opLogRepo repository.OperationLog) Stock {
 	return &stock{
-		pool:    pool,
-		repo:    r,
-		skuRepo: skuRepo,
+		pool:      pool,
+		repo:      r,
+		skuRepo:   skuRepo,
+		opLogRepo: opLogRepo,
 	}
 }
 

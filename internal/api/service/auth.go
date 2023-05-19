@@ -18,16 +18,18 @@ type Auth interface {
 }
 
 type auth struct {
-	pool     *pgxpool.Pool
-	repo     repository.Auth
-	userRepo repository.User
+	pool      *pgxpool.Pool
+	repo      repository.Auth
+	opLogRepo repository.OperationLog
+	userRepo  repository.User
 }
 
-func NewAuth(pool *pgxpool.Pool, r repository.Auth, userRepo repository.User) Auth {
+func NewAuth(pool *pgxpool.Pool, r repository.Auth, userRepo repository.User, opLogRepo repository.OperationLog) Auth {
 	return &auth{
-		pool:     pool,
-		repo:     r,
-		userRepo: userRepo,
+		pool:      pool,
+		repo:      r,
+		userRepo:  userRepo,
+		opLogRepo: opLogRepo,
 	}
 }
 

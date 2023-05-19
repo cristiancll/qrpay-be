@@ -26,15 +26,17 @@ type retrieval struct {
 	userRepo     repository.User
 	saleItemRepo repository.SaleItem
 	wpp          wpp.WhatsAppSystem
+	opLogRepo    repository.OperationLog
 }
 
-func NewRetrieval(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Retrieval, userRepo repository.User, saleItemRepo repository.SaleItem) Retrieval {
+func NewRetrieval(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Retrieval, userRepo repository.User, saleItemRepo repository.SaleItem, opLogRepo repository.OperationLog) Retrieval {
 	return &retrieval{
 		pool:         pool,
 		repo:         r,
 		userRepo:     userRepo,
 		saleItemRepo: saleItemRepo,
 		wpp:          wpp,
+		opLogRepo:    opLogRepo,
 	}
 }
 
@@ -74,6 +76,13 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 		if err != nil {
 			return err
 		}
+		opLog := &model.OperationLog{
+			User:        *user,
+			Seller:      *seller,
+			Operation:   "Retrieval",
+			OperationId: retrieval.ID,
+		}
+		_ = r.opLogRepo.Create(context.Background(), opLog)
 	}
 
 	err = tx.Commit(ctx)

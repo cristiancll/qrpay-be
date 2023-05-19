@@ -18,14 +18,16 @@ type Category interface {
 }
 
 type category struct {
-	pool *pgxpool.Pool
-	repo repository.Category
+	pool      *pgxpool.Pool
+	repo      repository.Category
+	opLogRepo repository.OperationLog
 }
 
-func NewCategory(pool *pgxpool.Pool, r repository.Category) Category {
+func NewCategory(pool *pgxpool.Pool, r repository.Category, opLogRepo repository.OperationLog) Category {
 	return &category{
-		pool: pool,
-		repo: r,
+		pool:      pool,
+		repo:      r,
+		opLogRepo: opLogRepo,
 	}
 }
 
