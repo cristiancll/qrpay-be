@@ -7,6 +7,7 @@ option go_package = "github.com/cristiancll/qrpay-be/proto";
 import "google/protobuf/timestamp.proto";
 
 import "user.proto";
+import "sku.proto";
 
 message Sale {
   string uuid = 1;
@@ -16,6 +17,14 @@ message Sale {
   bool paid = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
+}
+
+message SaleItem {
+  string uuid = 1;
+  Sale sale = 2;
+  SKU sku = 3;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 message SaleUnit {
@@ -29,6 +38,25 @@ service SaleService {
   rpc List(SaleListRequest) returns (SaleListResponse);
   rpc Update(SaleUpdateRequest) returns (SaleUpdateResponse);
   rpc Delete(SaleDeleteRequest) returns (SaleDeleteResponse);
+
+  rpc ListSaleItemsByUser(ListSaleItemsByUserRequest) returns (ListSaleItemsByUserResponse);
+  rpc ListAvailableSaleItemsByUser(ListAvailableSaleItemsByUserRequest) returns (ListAvailableSaleItemsByUserResponse);
+}
+
+message ListSaleItemsByUserRequest {
+  string userUUID = 1;
+}
+
+message ListSaleItemsByUserResponse {
+  repeated SaleItem saleItems = 1;
+}
+
+message ListAvailableSaleItemsByUserRequest {
+  string userUUID = 1;
+}
+
+message ListAvailableSaleItemsByUserResponse {
+  repeated SaleItem saleItems = 1;
 }
 
 message SaleCreateRequest {

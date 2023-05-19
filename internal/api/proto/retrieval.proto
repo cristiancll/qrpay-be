@@ -7,7 +7,7 @@ option go_package = "github.com/cristiancll/qrpay-be/proto";
 import "google/protobuf/timestamp.proto";
 
 import "user.proto";
-import "saleItem.proto";
+import "sale.proto";
 
 
 message Retrieval {
@@ -15,7 +15,7 @@ message Retrieval {
   User user = 2;
   User seller = 3;
   SaleItem sale_item = 4;
-  int64 quantity = 5;
+  bool delivered = 5;
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp updated_at = 7;
 }
@@ -29,24 +29,20 @@ service RetrievalService {
 }
 
 message RetrievalCreateRequest {
-  User user = 1;
-  User seller = 2;
-  SaleItem sale_item = 3;
-  int64 quantity = 4;
+  string userUUID = 1;
+  repeated string saleItemUUIDs = 2;
 }
-message RetrievalCreateResponse {
-  Retrieval retrieval = 1;
-}
+message RetrievalCreateResponse {}
 
 message RetrievalGetRequest {
   string uuid = 1;
 }
+
 message RetrievalGetResponse {
   Retrieval retrieval = 1;
 }
 
-message RetrievalListRequest {
-}
+message RetrievalListRequest {}
 
 message RetrievalListResponse {
   repeated Retrieval retrievals = 1;
@@ -54,10 +50,7 @@ message RetrievalListResponse {
 
 message RetrievalUpdateRequest {
   string uuid = 1;
-  User user = 2;
-  User seller = 3;
-  SaleItem sale_item = 4;
-  int64 quantity = 5;
+  bool delivered = 2;
 }
 
 message RetrievalUpdateResponse {
@@ -68,5 +61,4 @@ message RetrievalDeleteRequest {
   string uuid = 1;
 }
 
-message RetrievalDeleteResponse {
-}
+message RetrievalDeleteResponse {}
