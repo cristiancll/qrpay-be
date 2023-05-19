@@ -20,6 +20,7 @@ type Stock interface {
 	TGetterByUUID[model.Stock]
 	TDeleter[model.Stock]
 	TCountBySKU(ctx context.Context, tx pgx.Tx, skuID int64) error
+	TDecreaseStock(ctx context.Context, tx pgx.Tx, sku *model.SKU, quantity int64) error
 }
 
 type stock struct {
@@ -44,6 +45,7 @@ const (
 	getAllStocksQuery   = "SELECT s.id, s.uuid, sk.uuid, sk.name, sk.created_at, sk.updated_at, s.quantity, s.created_at, s.updated_at FROM stocks AS s JOIN skus AS sk ON (s.sku_id = sk.id)"
 	countBySKUQuery     = "SELECT COUNT(*) FROM stocks WHERE sku_id = $1"
 	deleteStockQuery    = "DELETE FROM stocks WHERE id = $1"
+	decreaseStockQuery  = "UPDATE stocks SET quantity = quantity - $2, updated_at = $3 WHERE sku_id = $1"
 )
 
 func (r *stock) Migrate(ctx context.Context) error {
@@ -120,4 +122,12 @@ func (r *stock) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.Stock, error) 
 		stocks = append(stocks, stock)
 	}
 	return stocks, nil
+}
+
+func (r *stock) TDecreaseStock(ctx context.Context, tx pgx.Tx, sku *model.SKU, quantity int64) error {
+	_, err := tx.Exec(ctx, decreaseStockQuery, sku.ID, quantity, time.Now().UTC())
+	if err != nil {
+		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+	return nil
 }

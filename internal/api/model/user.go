@@ -63,3 +63,29 @@ Agora é só se dirigir ao balcão de retirada e apresentar o seu QR Code para p
 
 	return fmt.Sprintf(format, common.FormatCentsToBRL(sale.Total))
 }
+
+func (u *User) NewRetrieval(items []*SaleItem) string {
+	type sku struct {
+		name     string
+		quantity int64
+	}
+
+	itemsMap := make(map[string]*sku)
+	for _, item := range items {
+		if _, ok := itemsMap[item.SKU.UUID]; ok {
+			itemsMap[item.SKU.UUID].quantity += 1
+		} else {
+			itemsMap[item.SKU.UUID] = &sku{
+				name:     item.SKU.Name,
+				quantity: 1,
+			}
+		}
+	}
+
+	format := fmt.Sprintf("Você resgatou %d itens do seu QR code.\n\n", len(items))
+
+	for _, item := range itemsMap {
+		format += fmt.Sprintf("\n%dx %s", item.quantity, item.name)
+	}
+	return format
+}

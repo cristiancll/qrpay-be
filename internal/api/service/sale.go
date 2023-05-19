@@ -10,6 +10,8 @@ import (
 
 type Sale interface {
 	Create(ctx context.Context, userUUID string, sellerUUID string, saleItems map[string]int64) (*model.Sale, error)
+	ListSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error)
+	ListAvailableSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error)
 }
 
 type sale struct {
@@ -18,21 +20,23 @@ type sale struct {
 	skuRepo      repository.SKU
 	userRepo     repository.User
 	saleItemRepo repository.SaleItem
+	stockRepo    repository.Stock
 	wpp          wpp.WhatsAppSystem
 }
 
-func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem) Sale {
+func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem, stockRepo repository.Stock) Sale {
 	return &sale{
 		pool:         pool,
 		repo:         r,
 		skuRepo:      skuRepo,
 		userRepo:     userRepo,
 		saleItemRepo: saleItemRepo,
+		stockRepo:    stockRepo,
 		wpp:          wpp,
 	}
 }
 
-func (s sale) Create(ctx context.Context, userUUID string, sellerUUID string, saleUnits map[string]int64) (*model.Sale, error) {
+func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, saleUnits map[string]int64) (*model.Sale, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return nil, err
@@ -82,14 +86,25 @@ func (s sale) Create(ctx context.Context, userUUID string, sellerUUID string, sa
 	}
 
 	// Creates sale items
-	saleItems := make([]*model.SaleItem, len(skus))
-	for i, sku := range skus {
-		saleItems[i] = &model.SaleItem{
-			Sale:     *sale,
-			SKU:      *sku,
-			Quantity: saleUnits[sku.UUID],
+	var saleItems []*model.SaleItem
+	for _, sku := range skus {
+		quantity := saleUnits[sku.UUID]
+		for j := 0; j < int(quantity); j++ {
+			saleItem := model.SaleItem{
+				Sale: *sale,
+				SKU:  *sku,
+			}
+			err = s.saleItemRepo.TCreate(ctx, tx, &saleItem)
+			if err != nil {
+				return nil, err
+			}
+			saleItems = append(saleItems, &saleItem)
 		}
-		err = s.saleItemRepo.TCreate(ctx, tx, saleItems[i])
+	}
+
+	// Updates stock
+	for _, sku := range skus {
+		err = s.stockRepo.TDecreaseStock(ctx, tx, sku, saleUnits[sku.UUID])
 		if err != nil {
 			return nil, err
 		}
@@ -101,4 +116,56 @@ func (s sale) Create(ctx context.Context, userUUID string, sellerUUID string, sa
 	}
 	go s.wpp.SendText(user, user.NewSale(sale, saleItems))
 	return sale, nil
+}
+
+func (s *sale) ListSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Validates user
+	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gets sale items
+	saleItems, err := s.saleItemRepo.TGetAllByUser(ctx, tx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return saleItems, nil
+}
+
+func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	// Validates user
+	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gets sale items
+	saleItems, err := s.saleItemRepo.TGetAllAvailableByUser(ctx, tx, user)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return saleItems, nil
 }

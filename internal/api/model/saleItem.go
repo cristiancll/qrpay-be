@@ -7,7 +7,6 @@ type SaleItem struct {
 	UUID      string    `db:"uuid"`
 	Sale      Sale      `db:"sale"`
 	SKU       SKU       `db:"sku"`
-	Quantity  int64     `db:"quantity"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }

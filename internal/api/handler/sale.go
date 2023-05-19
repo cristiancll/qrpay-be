@@ -9,6 +9,8 @@ import (
 
 type Sale interface {
 	Creater[proto.Sale, proto.SaleCreateRequest, proto.SaleCreateResponse]
+	ListSaleItemsByUser(context.Context, *proto.ListSaleItemsByUserRequest) (*proto.ListSaleItemsByUserResponse, error)
+	ListAvailableSaleItemsByUser(context.Context, *proto.ListAvailableSaleItemsByUserRequest) (*proto.ListAvailableSaleItemsByUserResponse, error)
 	proto.SaleServiceServer
 }
 
@@ -70,5 +72,69 @@ func (s *sale) Create(ctx context.Context, req *proto.SaleCreateRequest) (*proto
 			UpdatedAt: timestamppb.New(sale.UpdatedAt),
 		},
 	}
+	return res, nil
+}
+
+func (s *sale) ListSaleItemsByUser(ctx context.Context, req *proto.ListSaleItemsByUserRequest) (*proto.ListSaleItemsByUserResponse, error) {
+	err := checkStaffAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = checkValidUUID(req.UserUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	saleItems, err := s.service.ListSaleItemsByUser(ctx, req.UserUUID)
+
+	res := &proto.ListSaleItemsByUserResponse{
+		SaleItems: make([]*proto.SaleItem, len(saleItems)),
+	}
+	for i, saleItem := range saleItems {
+		res.SaleItems[i] = &proto.SaleItem{
+			Uuid: saleItem.UUID,
+			Sku: &proto.SKU{
+				Uuid: saleItem.SKU.UUID,
+				Item: &proto.Item{
+					Uuid: saleItem.SKU.Item.UUID,
+				},
+			},
+			CreatedAt: timestamppb.New(saleItem.CreatedAt),
+			UpdatedAt: timestamppb.New(saleItem.UpdatedAt),
+		}
+	}
+
+	return res, nil
+}
+
+func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, req *proto.ListAvailableSaleItemsByUserRequest) (*proto.ListAvailableSaleItemsByUserResponse, error) {
+	err := checkStaffAuthorization(ctx)
+	if err != nil {
+		return nil, err
+	}
+	err = checkValidUUID(req.UserUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	saleItems, err := s.service.ListAvailableSaleItemsByUser(ctx, req.UserUUID)
+
+	res := &proto.ListAvailableSaleItemsByUserResponse{
+		SaleItems: make([]*proto.SaleItem, len(saleItems)),
+	}
+	for i, saleItem := range saleItems {
+		res.SaleItems[i] = &proto.SaleItem{
+			Uuid: saleItem.UUID,
+			Sku: &proto.SKU{
+				Uuid: saleItem.SKU.UUID,
+				Item: &proto.Item{
+					Uuid: saleItem.SKU.Item.UUID,
+				},
+			},
+			CreatedAt: timestamppb.New(saleItem.CreatedAt),
+			UpdatedAt: timestamppb.New(saleItem.UpdatedAt),
+		}
+	}
+
 	return res, nil
 }
