@@ -11,9 +11,7 @@ type services struct {
 	wpp       service.WhatsApp
 	category  service.Category
 	item      service.Item
-	opLog     service.OperationLog
 	sale      service.Sale
-	saleItem  service.SaleItem
 	retrieval service.Retrieval
 	sku       service.SKU
 	stock     service.Stock
@@ -25,10 +23,8 @@ func (s *Server) createServices(wppSystem wpp.WhatsAppSystem) {
 	s.services.wpp = service.NewWhatsApp(s.db, wppSystem, s.repos.wpp)
 	s.services.category = service.NewCategory(s.db, s.repos.category)
 	s.services.item = service.NewItem(s.db, s.repos.item, s.repos.category)
-	s.services.opLog = service.NewOperationLog(s.db, s.repos.opLog)
-	s.services.sale = service.NewSale(s.db, wppSystem, s.repos.sale, s.repos.sku, s.repos.user, s.repos.saleItem)
-	s.services.saleItem = service.NewSaleItem(s.db, s.repos.saleItem)
-	s.services.retrieval = service.NewRetrieval(s.db, s.repos.retrieval)
+	s.services.sale = service.NewSale(s.db, wppSystem, s.repos.sale, s.repos.sku, s.repos.user, s.repos.saleItem, s.repos.stock)
+	s.services.retrieval = service.NewRetrieval(s.db, wppSystem, s.repos.retrieval, s.repos.user, s.repos.saleItem)
 	s.services.sku = service.NewSKU(s.db, s.repos.sku, s.repos.item)
 	s.services.stock = service.NewStock(s.db, s.repos.stock, s.repos.sku)
 }
