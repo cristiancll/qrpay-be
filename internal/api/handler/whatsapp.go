@@ -60,6 +60,7 @@ func (h *whatsApp) List(ctx context.Context, _ *proto.VoidRequest) (*proto.Whats
 			Uuid:      whats.UUID,
 			Qr:        whats.QR,
 			Phone:     whats.Phone,
+			Scanned:   whats.Scanned,
 			Active:    whats.Active,
 			Banned:    whats.Banned,
 			CreatedAt: timestamppb.New(whats.CreatedAt),

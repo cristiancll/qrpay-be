@@ -79,7 +79,6 @@ func New(db *pgxpool.Pool, repo repository.WhatsApp, userRepo repository.User, a
 
 func (s *whatsAppSystem) qrCodeRoutine(ctx context.Context, qrChan <-chan whatsmeow.QRChannelItem) {
 	var previousCode string
-	defer s.repo.ClearUnusedWhatsApp(ctx)
 	timeout := false
 	for evt := range qrChan {
 		var err error
@@ -145,15 +144,6 @@ func (s *whatsAppSystem) eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.PairSuccess:
 		s.whatsapp.Scanned = true
-		err := s.repo.Update(s.ctx, s.whatsapp)
-		if err != nil {
-			// TODO: log error
-		}
-	case *events.PairError:
-		err := s.repo.Delete(s.ctx, s.whatsapp)
-		if err != nil {
-			// TODO: log error
-		}
 	case *events.Connected:
 		s.whatsapp.Phone = &s.device.ID.User
 		s.whatsapp.Active = true
@@ -162,7 +152,8 @@ func (s *whatsAppSystem) eventHandler(evt interface{}) {
 			// TODO: log error
 		}
 	case *events.Disconnected:
-		err := s.repo.Delete(s.ctx, s.whatsapp)
+		s.whatsapp.Active = false
+		err := s.repo.Update(s.ctx, s.whatsapp)
 		if err != nil {
 			// TODO: log error
 		}
@@ -176,7 +167,8 @@ func (s *whatsAppSystem) eventHandler(evt interface{}) {
 		}
 		s.restart()
 	case *events.LoggedOut:
-		err := s.repo.Delete(s.ctx, s.whatsapp)
+		s.whatsapp.Active = true
+		err := s.repo.Update(s.ctx, s.whatsapp)
 		if err != nil {
 			// TODO: log error
 		}

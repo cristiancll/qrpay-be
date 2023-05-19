@@ -56,7 +56,7 @@ const (
 
 	deleteWhatsappQuery         = `DELETE FROM whatsapps WHERE id = $1`
 	deleteWhatsappByQRCodeQuery = `DELETE FROM whatsapps WHERE qr = $1`
-	clearUnusedWhatsAppQuery    = `DELETE FROM whatsapps WHERE active = FALSE AND scanned = FALSE`
+	clearUnusedWhatsAppQuery    = `DELETE FROM whatsapps WHERE scanned = FALSE AND active = FALSE`
 
 	getWhatsappByUUIDQuery    = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps WHERE uuid = $1`
 	getAllWhatsappQuery       = `SELECT id, uuid, qr, phone, scanned, active, banned, created_at, updated_at FROM whatsapps`
