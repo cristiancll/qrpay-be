@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/errors"
@@ -12,6 +13,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"net/http"
+	"strings"
 )
 
 var authByPassList = []string{
@@ -51,18 +53,45 @@ func getTokenFromCookie(ctx context.Context) (*http.Cookie, error) {
 	return jwtToken, nil
 }
 
+func extractToken(tokenStrings []string) (string, error) {
+	if len(tokenStrings) == 0 {
+		return "", fmt.Errorf("no authorization token provided")
+	}
+
+	tokenString := strings.TrimSpace(tokenStrings[0])
+
+	var sanitizedToken string
+	// Check if the token starts with "Bearer "
+	if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
+		// Remove the "Bearer " prefix
+		sanitizedToken = tokenString[len("bearer "):len(tokenString)]
+	}
+
+	// Remove any leading or trailing spaces from the token
+	sanitizedToken = strings.TrimSpace(sanitizedToken)
+
+	if sanitizedToken == "" {
+		return "", fmt.Errorf("invalid authorization token")
+	}
+
+	return sanitizedToken, nil
+}
+
 func getTokenFromAuthorization(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 
-	tokenStrings := md.Get("authorization")
+	tokenStrings := md.Get("Authorization")
 	if len(tokenStrings) == 0 {
 		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
-	tokenString := tokenStrings[0][len("Bearer "):]
-	return tokenString, nil
+	token, err := extractToken(tokenStrings)
+	if err != nil {
+		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+	}
+	return token, nil
 }
 
 func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -70,22 +99,26 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		return handler(ctx, req)
 	}
 
-	jwtToken, err := getTokenFromCookie(ctx)
+	// TODO: RE ENABLE COOKIE AUTH
+	//jwtToken, err := getTokenFromCookie(ctx)
+	//tokenString := jwtToken.Value
+
+	tokenString, err := getTokenFromAuthorization(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenString := jwtToken.Value
 	publicKey := configs.Get().Keys.JWT.PublicKey
 	claims, refreshedToken, err := security.VerifyJWTToken(tokenString, publicKey)
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 	if refreshedToken != "" {
-		err = security.UpdateJWTCookie(ctx, refreshedToken)
-		if err != nil {
-			return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
-		}
+		//err = security.UpdateJWTCookie(ctx, refreshedToken)
+		//if err != nil {
+		//	return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		//}
+		ctx = context.WithValue(ctx, "RefreshedToken", refreshedToken)
 	}
 
 	var subjClaims security.SubjectClaims

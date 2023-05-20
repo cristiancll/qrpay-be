@@ -126,8 +126,8 @@ func (c *Config) loadKeys() error {
 }
 
 func (c *Config) loadTLSKey() (*tls.Certificate, error) {
-	certPath := fmt.Sprintf("%s/%s", c.Server.KeysPath, "server-cert.pem")
-	keyPath := fmt.Sprintf("%s/%s", c.Server.KeysPath, "server-key.pem")
+	certPath := fmt.Sprintf("%s/%s", c.Server.KeysPath, "fullchain.pem")
+	keyPath := fmt.Sprintf("%s/%s", c.Server.KeysPath, "privkey.pem")
 	// Try to load the certificate and key from the files
 	cert, err := tls.LoadX509KeyPair(certPath, keyPath)
 	if err == nil {

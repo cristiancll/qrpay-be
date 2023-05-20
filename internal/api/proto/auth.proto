@@ -19,11 +19,13 @@ message AuthLoginRequest {
 message AuthLoginResponse {
   User user = 1;
   Auth auth = 2;
+  string token = 3;
 }
 
 message AuthHeartbeatResponse {
   User user = 1;
   Auth auth = 2;
+  string token = 3;
 }
 
 message AuthVoid {}

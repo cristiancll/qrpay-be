@@ -178,7 +178,7 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	defer tx.Rollback(ctx)
 
 	seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
-	if err == nil {
+	if err != nil {
 		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
 	}
 

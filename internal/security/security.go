@@ -12,7 +12,6 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"math/rand"
-	"net/http"
 	"strings"
 	"time"
 )
@@ -79,46 +78,54 @@ func VerifyJWTToken(tokenString string, publicKey *ecdsa.PublicKey) (*jwt.Regist
 
 	now := time.Now().Unix()
 	expiresAt := claims.ExpiresAt.Time.Unix()
-	refreshTime := expiresAt - int64(configs.Get().JWT.GetRefreshThreshold().Seconds())
+	//refreshTime := expiresAt - int64(configs.Get().JWT.GetRefreshThreshold().Seconds())
 	if now > expiresAt {
 		return nil, refreshedToken, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 
-	if now > refreshTime {
-		newToken, _ := GenerateJWTToken(claims.Subject, configs.Get().Keys.JWT.PrivateKey)
-		if newToken != "" {
-			refreshedToken = newToken
-		}
+	//if now > refreshTime {
+	newToken, _ := GenerateJWTToken(claims.Subject, configs.Get().Keys.JWT.PrivateKey)
+	if newToken != "" {
+		refreshedToken = newToken
 	}
+	//}
 
 	return claims, refreshedToken, nil
 }
 
 func UpdateJWTCookie(ctx context.Context, newToken string) error {
-	cookie := &http.Cookie{
-		Name:     "jwtToken",
-		Value:    newToken,
-		Path:     "/",
-		HttpOnly: true,
-		Expires:  time.Now().Add(configs.Get().JWT.GetExpiresIn()),
-	}
-	headers := metadata.Pairs("Set-Cookie", cookie.String())
-	err := grpc.SendHeader(ctx, headers)
-	if err != nil {
-		return status.Error(codes.Internal, errors.CONNECTION_ERROR)
-	}
+	//cookie := &http.Cookie{
+	//	Name:     "jwtToken",
+	//	Value:    newToken,
+	//	Path:     "/",
+	//	HttpOnly: true,
+	//	Expires:  time.Now().Add(configs.Get().JWT.GetExpiresIn()),
+	//}
+	//headers := metadata.Pairs("Set-Cookie", cookie.String())
+
+	// Set cookie to authorization header
+	//headers := metadata.Pairs("Authorization", "Bearer "+newToken)
+
+	//err := grpc.SendHeader(ctx, headers)
+	//if err != nil {
+	//	return status.Error(codes.Internal, errors.CONNECTION_ERROR)
+	//}
 	return nil
 }
 
 func DeleteJWTCookie(ctx context.Context) error {
-	cookie := &http.Cookie{
-		Name:     "jwtToken",
-		Value:    "",
-		Path:     "/",
-		HttpOnly: true,
-		Expires:  time.Unix(0, 0),
-	}
-	headers := metadata.Pairs("Set-Cookie", cookie.String())
+	//cookie := &http.Cookie{
+	//	Name:     "jwtToken",
+	//	Value:    "",
+	//	Path:     "/",
+	//	HttpOnly: true,
+	//	Expires:  time.Unix(0, 0),
+	//}
+	//headers := metadata.Pairs("Set-Cookie", cookie.String())
+
+	// Delete cookie from authorization header
+	headers := metadata.Pairs("Authorization", "")
+
 	err := grpc.SendHeader(ctx, headers)
 	if err != nil {
 		return status.Error(codes.Internal, errors.CONNECTION_ERROR)
