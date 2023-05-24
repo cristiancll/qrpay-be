@@ -16,6 +16,7 @@
     "signing_algorithm": "ES256",
     "expires_in": "30m",
     "refresh_threshold": "10m",
-    "issuer": "qrpay"
+    "issuer": "qrpay",
+    "source": "cookies"
   }
 }

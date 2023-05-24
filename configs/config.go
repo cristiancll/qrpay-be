@@ -37,6 +37,7 @@ type JWT struct {
 	Issuer           string `json:"issuer"`
 	ExpiresIn        string `json:"expires_in"`
 	RefreshThreshold string `json:"refresh_threshold"`
+	Source           string `json:"source"`
 }
 
 type WhatsApp struct {
@@ -45,6 +46,13 @@ type WhatsApp struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Name     string `json:"name"`
+}
+
+func (j *JWT) IsSourceCookies() bool {
+	if j.Source == "" {
+		return true
+	}
+	return j.Source == "cookies"
 }
 
 func (j *JWT) GetExpiresIn() time.Duration {

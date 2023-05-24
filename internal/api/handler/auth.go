@@ -53,18 +53,7 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	token, err := security.GenerateJWTToken(string(subj[:]), privateKey)
-	if err != nil {
-		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
-	}
 
-	//err = security.UpdateJWTCookie(ctx, token)
-	//if err != nil {
-	//	return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
-	//}
-
-	// set token to authorization:
-	//ctx = metadata.AppendToOutgoingContext(ctx, "Authorization", "Bearer "+token)
 	res := &proto.AuthLoginResponse{
 		User: &proto.User{
 			Uuid:      user.UUID,
@@ -78,7 +67,20 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 			Verified: auth.Verified,
 			Disabled: auth.Disabled,
 		},
-		Token: token,
+	}
+
+	token, err := security.GenerateJWTToken(string(subj[:]), privateKey)
+	if err != nil {
+		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+	}
+
+	if configs.Get().JWT.IsSourceCookies() {
+		err = security.UpdateJWTCookie(ctx, token)
+		if err != nil {
+			return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+		}
+	} else {
+		res.Token = &token
 	}
 	return res, nil
 }
@@ -112,17 +114,19 @@ func (h *auth) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthH
 		},
 	}
 
-	refreshedToken := ctx.Value("RefreshedToken")
-	if refreshedToken != nil {
-		token, ok := refreshedToken.(string)
-		if !ok {
-			fmt.Printf("error casting token: %v\n", refreshedToken)
-			return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	if !configs.Get().JWT.IsSourceCookies() {
+		refreshedToken := ctx.Value("RefreshedToken")
+		if refreshedToken != nil {
+			token, ok := refreshedToken.(string)
+			if !ok {
+				fmt.Printf("error casting token: %v\n", refreshedToken)
+				return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+			}
+			if token != "" {
+				res.Token = &token
+			}
 		}
-		if token != "" {
-			res.Token = token
-		}
-	}
 
+	}
 	return res, nil
 }

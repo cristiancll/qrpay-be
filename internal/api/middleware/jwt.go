@@ -99,13 +99,19 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		return handler(ctx, req)
 	}
 
-	// TODO: RE ENABLE COOKIE AUTH
-	//jwtToken, err := getTokenFromCookie(ctx)
-	//tokenString := jwtToken.Value
-
-	tokenString, err := getTokenFromAuthorization(ctx)
-	if err != nil {
-		return nil, err
+	var tokenString string
+	var err error
+	if configs.Get().JWT.IsSourceCookies() {
+		jwtToken, err := getTokenFromCookie(ctx)
+		if err != nil {
+			return nil, err
+		}
+		tokenString = jwtToken.Value
+	} else {
+		tokenString, err = getTokenFromAuthorization(ctx)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	publicKey := configs.Get().Keys.JWT.PublicKey
@@ -114,11 +120,14 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
 	}
 	if refreshedToken != "" {
-		//err = security.UpdateJWTCookie(ctx, refreshedToken)
-		//if err != nil {
-		//	return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
-		//}
-		ctx = context.WithValue(ctx, "RefreshedToken", refreshedToken)
+		if configs.Get().JWT.IsSourceCookies() {
+			err = security.UpdateJWTCookie(ctx, refreshedToken)
+			if err != nil {
+				return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+			}
+		} else {
+			ctx = context.WithValue(ctx, "RefreshedToken", refreshedToken)
+		}
 	}
 
 	var subjClaims security.SubjectClaims
