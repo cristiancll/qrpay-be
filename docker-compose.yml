@@ -1,0 +1,27 @@
+version: '3'
+services:
+  qrpay-proxy:
+    restart: always
+    build: ./grpcwebproxy
+    image: qrpay-proxy
+    ports:
+      - "443:443"
+  qrpay-be:
+    restart: always
+    build: .
+    image: qrpay-be
+    ports:
+      - "50051:50051"
+    depends_on:
+      - qrpay-db
+  qrpay-db:
+    restart: always
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: hoM5tUfgZ93P75TYaJi9pwba7OO
+      POSTGRES_USER: postgres
+      POSTGRES_DB: qrpay
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../../../../database:/var/lib/postgresql/data
