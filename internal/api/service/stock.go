@@ -45,9 +45,12 @@ func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*mo
 		return nil, err
 	}
 
-	err = s.repo.TCountBySKU(ctx, tx, sku.ID)
+	count, err := s.repo.TCountBySKU(ctx, tx, sku.ID)
 	if err != nil {
 		return nil, err
+	}
+	if count > 0 {
+		return nil, status.Error(codes.AlreadyExists, errors.STOCK_ALREADY_EXISTS)
 	}
 
 	stock := &model.Stock{

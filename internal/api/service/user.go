@@ -51,8 +51,11 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 
 	phone = common.SanitizePhone(phone)
 
-	err = s.repo.CountByPhone(ctx, tx, phone)
+	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
+		return nil, err
+	}
+	if count > 0 {
 		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
 	}
 
@@ -184,8 +187,11 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 
 	phone = common.SanitizePhone(phone)
 
-	err = s.repo.CountByPhone(ctx, tx, phone)
+	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
+		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+	}
+	if count > 0 {
 		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
 	}
 

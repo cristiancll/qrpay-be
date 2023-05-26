@@ -15,7 +15,7 @@ import (
 type User interface {
 	Migrater
 	TCRUDer[model.User]
-	CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error
+	CountByPhone(ctx context.Context, tx pgx.Tx, phone string) (int64, error)
 	GetUserByPhone(ctx context.Context, tx pgx.Tx, phone string) (*model.User, error)
 	GetVerifiedList(ctx context.Context) ([]string, error)
 }
@@ -28,26 +28,6 @@ func NewUser(db *pgxpool.Pool) User {
 	return &user{db: db}
 }
 
-const (
-	createUserTableQuery = `CREATE TABLE IF NOT EXISTS users (
-			id SERIAL PRIMARY KEY, 
-			uuid VARCHAR(255) NOT NULL, 
-			name VARCHAR(255) NOT NULL, 
-			role INT NOT NULL, 
-			phone VARCHAR(255) NOT NULL UNIQUE, 
-			created_at TIMESTAMP NOT NULL, 
-			updated_at TIMESTAMP NOT NULL)`
-	createUserQuery          = "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
-	updateUserQuery          = "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = $5 WHERE id = $1"
-	deleteUserQuery          = "DELETE FROM users WHERE id = $1"
-	getUserByIDQuery         = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE id = $1"
-	getUserByUUIDQuery       = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE uuid = $1"
-	getAllUsersQuery         = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users"
-	getUserByPhoneQuery      = "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE phone = $1"
-	countByPhoneQuery        = "SELECT count(*) FROM users WHERE phone = $1"
-	getVerifiedUserListQuery = "SELECT u.phone FROM users u INNER JOIN auths a ON u.id = a.user_id WHERE a.verified = true"
-)
-
 func (r *user) GetVerifiedList(ctx context.Context) ([]string, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
@@ -55,7 +35,8 @@ func (r *user) GetVerifiedList(ctx context.Context) ([]string, error) {
 	}
 	defer tx.Rollback(ctx)
 
-	rows, err := tx.Query(ctx, getVerifiedUserListQuery)
+	query := "SELECT u.phone FROM users u INNER JOIN auths a ON u.id = a.user_id WHERE a.verified = true"
+	rows, err := tx.Query(ctx, query)
 	if err == pgx.ErrNoRows {
 		return nil, status.Error(codes.NotFound, errors.NO_USERS_FOUND)
 	} else if err != nil {
@@ -78,40 +59,24 @@ func (r *user) GetVerifiedList(ctx context.Context) ([]string, error) {
 	return phones, nil
 }
 
-func (r *user) GetUserByPhone(ctx context.Context, tx pgx.Tx, username string) (*model.User, error) {
-	user := &model.User{}
-	row := tx.QueryRow(ctx, getUserByPhoneQuery, username)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
-	if err == pgx.ErrNoRows {
-		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return user, nil
+func (r *user) GetUserByPhone(ctx context.Context, tx pgx.Tx, phone string) (*model.User, error) {
+	query := "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE phone = $1"
+	return tGet[model.User](ctx, tx, query, phone)
 }
 
-func (r *user) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) error {
-	count := 0
-	row := tx.QueryRow(ctx, countByPhoneQuery, phone)
-	err := row.Scan(&count)
-	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	if count > 0 {
-		return status.Error(codes.Internal, errors.USER_ALREADY_EXISTS)
-	}
-	return nil
+func (r *user) CountByPhone(ctx context.Context, tx pgx.Tx, phone string) (int64, error) {
+	query := "SELECT count(*) FROM users WHERE phone = $1"
+	return tCount(ctx, tx, query, phone)
 }
 
 func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
-	var id int64
 	user.UUID = uuid.New().String()
 	user.CreatedAt = time.Now().UTC()
 	user.UpdatedAt = time.Now().UTC()
-	row := tx.QueryRow(ctx, createUserQuery, user.UUID, user.Name, user.Role, user.Phone, user.CreatedAt, user.UpdatedAt)
-	err := row.Scan(&id)
+	query := "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
+	id, err := tCreate(ctx, tx, query, user.UUID, user.Name, user.Role, user.Phone, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return err
 	}
 	user.ID = id
 	return nil
@@ -119,73 +84,38 @@ func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 
 func (r *user) TUpdate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	user.UpdatedAt = time.Now().UTC()
-	_, err := tx.Exec(ctx, updateUserQuery, user.ID, user.Name, user.Role, user.Phone, user.UpdatedAt)
-	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return nil
+	query := "UPDATE users SET name = $2, role = $3, phone = $4, updated_at = $5 WHERE id = $1"
+	return tUpdate(ctx, tx, query, user.ID, user.Name, user.Role, user.Phone, user.UpdatedAt)
 }
 
 func (r *user) TDelete(ctx context.Context, tx pgx.Tx, user *model.User) error {
-	_, err := tx.Exec(ctx, deleteUserQuery, user.ID)
-	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return nil
+	query := "DELETE FROM users WHERE id = $1"
+	return tDelete(ctx, tx, query, user.ID)
 }
 
 func (r *user) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.User, error) {
-	user := &model.User{}
-
-	row := tx.QueryRow(ctx, getUserByIDQuery, id)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
-	if err == pgx.ErrNoRows {
-		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-
-	return user, nil
+	query := "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE id = $1"
+	return tGet[model.User](ctx, tx, query, id)
 }
 
 func (r *user) TGetByUUID(ctx context.Context, tx pgx.Tx, uuid string) (*model.User, error) {
-	user := &model.User{}
-	row := tx.QueryRow(ctx, getUserByUUIDQuery, uuid)
-	err := row.Scan(&user.ID, &user.UUID, &user.Name, &user.Role, &user.Phone, &user.CreatedAt, &user.UpdatedAt)
-	if err == pgx.ErrNoRows {
-		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return user, nil
+	query := "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users WHERE uuid = $1"
+	return tGet[model.User](ctx, tx, query, uuid)
 }
 
 func (r *user) TGetAll(ctx context.Context, tx pgx.Tx) ([]*model.User, error) {
-	var users []*model.User
-
-	rows, err := tx.Query(ctx, getAllUsersQuery)
-	if err == pgx.ErrNoRows {
-		return nil, status.Error(codes.NotFound, errors.NO_USERS_FOUND)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var u model.User
-		err := rows.Scan(&u.ID, &u.UUID, &u.Name, &u.Role, &u.Phone, &u.CreatedAt, &u.UpdatedAt)
-		if err != nil {
-			return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-		}
-		users = append(users, &u)
-	}
-	return users, nil
+	query := "SELECT id, uuid, name, role, phone, created_at, updated_at FROM users"
+	return tGetAll[model.User](ctx, tx, query)
 }
 
 func (r *user) Migrate(ctx context.Context) error {
-	_, err := r.db.Exec(ctx, createUserTableQuery)
-	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return nil
+	query := `CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY, 
+			uuid VARCHAR(255) NOT NULL, 
+			name VARCHAR(255) NOT NULL, 
+			role INT NOT NULL, 
+			phone VARCHAR(255) NOT NULL UNIQUE, 
+			created_at TIMESTAMP NOT NULL, 
+			updated_at TIMESTAMP NOT NULL)`
+	return migrate(ctx, r.db, query)
 }
