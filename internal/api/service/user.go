@@ -8,7 +8,6 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
-	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -28,16 +27,14 @@ type user struct {
 	pool      *pgxpool.Pool
 	repo      repository.User
 	authRepo  repository.Auth
-	wpp       wpp.WhatsAppSystem
 	opLogRepo repository.OperationLog
 }
 
-func NewUser(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.User, authRepo repository.Auth, opLogRepo repository.OperationLog) User {
+func NewUser(pool *pgxpool.Pool, r repository.User, authRepo repository.Auth, opLogRepo repository.OperationLog) User {
 	return &user{
 		pool:      pool,
 		repo:      r,
 		authRepo:  authRepo,
-		wpp:       wpp,
 		opLogRepo: opLogRepo,
 	}
 }
@@ -85,7 +82,7 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 	if err != nil {
 		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	go s.wpp.SendImage(user, user.WelcomeMessage())
+	//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
 	return user, nil
 }
 
@@ -231,7 +228,7 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	}
 	_ = s.opLogRepo.Create(context.Background(), opLog)
 
-	go s.wpp.SendImage(user, user.WelcomeMessage())
+	//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
 	return user, nil
 }
 

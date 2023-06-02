@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -21,11 +20,10 @@ type sale struct {
 	userRepo     repository.User
 	saleItemRepo repository.SaleItem
 	stockRepo    repository.Stock
-	wpp          wpp.WhatsAppSystem
 	opLogRepo    repository.OperationLog
 }
 
-func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem, stockRepo repository.Stock, opLogRepo repository.OperationLog) Sale {
+func NewSale(pool *pgxpool.Pool, r repository.Sale, skuRepo repository.SKU, userRepo repository.User, saleItemRepo repository.SaleItem, stockRepo repository.Stock, opLogRepo repository.OperationLog) Sale {
 	return &sale{
 		pool:         pool,
 		repo:         r,
@@ -33,7 +31,6 @@ func NewSale(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Sale, skuR
 		userRepo:     userRepo,
 		saleItemRepo: saleItemRepo,
 		stockRepo:    stockRepo,
-		wpp:          wpp,
 		opLogRepo:    opLogRepo,
 	}
 }
@@ -123,7 +120,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	if err != nil {
 		return nil, err
 	}
-	go s.wpp.SendText(user, user.NewSale(sale, saleItems))
+	//go s.wpp.SendText(user, user.NewSale(sale, saleItems)) // TODO:
 	return sale, nil
 }
 

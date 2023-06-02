@@ -9,6 +9,27 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func create(ctx context.Context, db *pgxpool.Pool, query string, args ...any) (int64, error) {
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		return 0, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	defer tx.Rollback(ctx)
+
+	row := tx.QueryRow(ctx, query, args...)
+	var id int64
+	err = row.Scan(&id)
+	if err != nil {
+		return id, status.Error(codes.Internal, errors.DATABASE_ERROR)
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return id, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+	}
+	return id, nil
+}
+
 type TCreater[E any] interface {
 	TCreate(context.Context, pgx.Tx, *E) error
 }

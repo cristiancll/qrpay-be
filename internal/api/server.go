@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/middleware"
-	"github.com/cristiancll/qrpay-be/internal/wpp"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -24,6 +25,27 @@ type Server struct {
 	services *services
 }
 
+func (s *Server) createDatabaseIfNotExists(err error) error {
+	err = errors.Unwrap(err)
+	if er, ok := err.(*pgconn.PgError); ok {
+		if er.Code == "3D000" {
+			c := configs.Get().Database
+			url := fmt.Sprintf("postgres://%s:%s@%s:%d/?sslmode=disable", c.Username, c.Password, c.Host, c.Port)
+			db, err := pgxpool.New(s.context, url)
+			if err != nil {
+				return fmt.Errorf("unable to connect to database: %v", err)
+			}
+			defer db.Close()
+			query := fmt.Sprintf("CREATE DATABASE %s", c.Name)
+			_, err = db.Exec(s.context, query)
+			if err != nil {
+				return fmt.Errorf("unable to create database: %v", err)
+			}
+		}
+	}
+	return nil
+}
+
 func (s *Server) startDatabase() error {
 	// Create a new context
 	s.context = context.Background()
@@ -39,7 +61,10 @@ func (s *Server) startDatabase() error {
 	// Ping the database to check if it's still alive.
 	err = db.Ping(s.context)
 	if err != nil {
-		return fmt.Errorf("unable to ping database: %v", err)
+		err = s.createDatabaseIfNotExists(err)
+		if err == nil {
+			return s.startDatabase()
+		}
 	}
 
 	// Set the database connection pool to the Server struct
@@ -64,25 +89,8 @@ func (s *Server) initializeAPI() error {
 		return err
 	}
 
-	// Fetch verified list for WhatsApp System
-	verifiedCache, err := s.repos.user.GetVerifiedList(s.context)
-	if err != nil {
-		return fmt.Errorf("unable to get verified list: %v", err)
-	}
-
-	// Create WhatsApp System
-	wppSystem, err := wpp.New(s.db, s.repos.wpp, s.repos.user, s.repos.auth, verifiedCache)
-	if err != nil {
-		return fmt.Errorf("unable to start whatsapp client: %v", err)
-	}
-	err = wppSystem.Start()
-	if err != nil {
-		return fmt.Errorf("unable to start whatsapp client: %v", err)
-	}
-	defer wppSystem.Stop()
-
 	// Create Services
-	s.createServices(wppSystem)
+	s.createServices()
 
 	// Create Handlers
 	s.createHandlers()

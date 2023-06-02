@@ -8,7 +8,6 @@ import (
 type repositories struct {
 	user      repository.User
 	auth      repository.Auth
-	wpp       repository.WhatsApp
 	category  repository.Category
 	item      repository.Item
 	opLog     repository.OperationLog
@@ -28,11 +27,6 @@ func (s *Server) createRepositories() error {
 	s.repos.auth = repository.NewAuth(s.db)
 	if err := s.repos.auth.Migrate(s.context); err != nil {
 		return fmt.Errorf("unable to migrate auth repository: %v", err)
-	}
-
-	s.repos.wpp = repository.NewWhatsApp(s.db)
-	if err := s.repos.wpp.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate whatsapp repository: %v", err)
 	}
 
 	s.repos.category = repository.NewCategory(s.db)

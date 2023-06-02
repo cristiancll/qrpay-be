@@ -5,7 +5,6 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errors"
-	"github.com/cristiancll/qrpay-be/internal/wpp"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -25,17 +24,15 @@ type retrieval struct {
 	repo         repository.Retrieval
 	userRepo     repository.User
 	saleItemRepo repository.SaleItem
-	wpp          wpp.WhatsAppSystem
 	opLogRepo    repository.OperationLog
 }
 
-func NewRetrieval(pool *pgxpool.Pool, wpp wpp.WhatsAppSystem, r repository.Retrieval, userRepo repository.User, saleItemRepo repository.SaleItem, opLogRepo repository.OperationLog) Retrieval {
+func NewRetrieval(pool *pgxpool.Pool, r repository.Retrieval, userRepo repository.User, saleItemRepo repository.SaleItem, opLogRepo repository.OperationLog) Retrieval {
 	return &retrieval{
 		pool:         pool,
 		repo:         r,
 		userRepo:     userRepo,
 		saleItemRepo: saleItemRepo,
-		wpp:          wpp,
 		opLogRepo:    opLogRepo,
 	}
 }
@@ -89,7 +86,7 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 	if err != nil {
 		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
 	}
-	go r.wpp.SendText(user, user.NewRetrieval(saleItems))
+	//go r.wpp.SendText(user, user.NewRetrieval(saleItems)) // TODO
 	return nil
 }
 
