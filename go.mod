@@ -3,7 +3,6 @@ module github.com/cristiancll/qrpay-be
 go 1.20
 
 require (
-	github.com/glebarez/go-sqlite v1.21.1
 	github.com/golang-jwt/jwt/v5 v5.0.0
 	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v5 v5.3.1

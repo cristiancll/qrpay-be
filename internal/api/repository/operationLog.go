@@ -10,7 +10,7 @@ import (
 
 type OperationLog interface {
 	Migrater
-	Creater[model.OperationLog]
+	Create(ctx context.Context, log *model.OperationLog) error
 }
 
 type operationLog struct {

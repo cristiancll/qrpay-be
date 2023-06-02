@@ -65,7 +65,7 @@ func (r *auth) TUpdate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 
 func (r *auth) TDelete(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	query := "DELETE FROM auths WHERE id = $1"
-	return tDelete[model.Auth](ctx, tx, query, auth.ID)
+	return tDelete(ctx, tx, query, auth.ID)
 }
 
 func (r *auth) TGetById(ctx context.Context, tx pgx.Tx, id int64) (*model.Auth, error) {
