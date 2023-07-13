@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -38,20 +40,20 @@ func NewSale(pool *pgxpool.Pool, r repository.Sale, skuRepo repository.SKU, user
 func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, saleUnits map[string]int64) (*model.Sale, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Validates seller
 	seller, err := s.userRepo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Gets SKUs UUIDs
@@ -63,7 +65,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	// Validates SKUs
 	skus, err := s.skuRepo.TGetAllByUUIDs(ctx, tx, skusIDs)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Calculates total amount
@@ -81,7 +83,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	}
 	err = s.repo.TCreate(ctx, tx, sale)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Creates sale items
@@ -95,7 +97,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 			}
 			err = s.saleItemRepo.TCreate(ctx, tx, &saleItem)
 			if err != nil {
-				return nil, err
+				return nil, errs.Wrap(err, "")
 			}
 			saleItems = append(saleItems, &saleItem)
 			opLog := &model.OperationLog{
@@ -112,13 +114,13 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	for _, sku := range skus {
 		err = s.stockRepo.TDecreaseStock(ctx, tx, sku, saleUnits[sku.UUID])
 		if err != nil {
-			return nil, err
+			return nil, errs.Wrap(err, "")
 		}
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	//go s.wpp.SendText(user, user.NewSale(sale, saleItems)) // TODO:
 	return sale, nil
@@ -127,25 +129,25 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 func (s *sale) ListSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Gets sale items
 	saleItems, err := s.saleItemRepo.TGetAllByUser(ctx, tx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return saleItems, nil
 }
@@ -153,25 +155,25 @@ func (s *sale) ListSaleItemsByUser(ctx context.Context, userUUID string) ([]*mod
 func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, userUUID string) ([]*model.SaleItem, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	// Gets sale items
 	saleItems, err := s.saleItemRepo.TGetAllAvailableByUser(ctx, tx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return saleItems, nil
 }

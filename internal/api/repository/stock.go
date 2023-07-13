@@ -2,13 +2,11 @@ package repository
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
-	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -49,7 +47,7 @@ func (r *stock) TCreate(ctx context.Context, tx pgx.Tx, stock *model.Stock) erro
 	query := "INSERT INTO stocks (uuid, sku_id, quantity, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 	id, err := tCreate(ctx, tx, query, stock.UUID, stock.SKU.ID, stock.Quantity, stock.CreatedAt, stock.UpdatedAt)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.Wrap(err, "")
 	}
 	stock.ID = id
 	return nil

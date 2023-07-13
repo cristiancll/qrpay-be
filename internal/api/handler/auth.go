@@ -3,14 +3,14 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/security"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"strconv"
 )
@@ -35,14 +35,14 @@ func NewAuth(service service.Auth) Auth {
 
 func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error) {
 	if req.Phone == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.PHONE_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.Password == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.PASSWORD_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	user, auth, err := h.service.Login(ctx, req.Phone, req.Password)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	privateKey := configs.Get().Keys.JWT.PrivateKey
@@ -51,7 +51,7 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 		Role: strconv.FormatInt(int64(user.Role), 10),
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 
 	res := &proto.AuthLoginResponse{
@@ -71,13 +71,13 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 
 	token, err := security.GenerateJWTToken(string(subj[:]), privateKey)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 
 	if configs.Get().JWT.IsSourceCookies() {
 		err = security.UpdateJWTCookie(ctx, token)
 		if err != nil {
-			return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+			return nil, errs.New(err, errCode.Internal)
 		}
 	} else {
 		res.Token = &token
@@ -88,7 +88,7 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 func (h *auth) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid, error) {
 	err := security.DeleteJWTCookie(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.AuthVoid{}
 	return res, nil
@@ -120,7 +120,7 @@ func (h *auth) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthH
 			token, ok := refreshedToken.(string)
 			if !ok {
 				fmt.Printf("error casting token: %v\n", refreshedToken)
-				return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+				return nil, errs.New(errors.New(""), errCode.Internal)
 			}
 			if token != "" {
 				res.Token = &token

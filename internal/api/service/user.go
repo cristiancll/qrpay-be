@@ -2,15 +2,15 @@ package service
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/common"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type User interface {
@@ -42,7 +42,7 @@ func NewUser(pool *pgxpool.Pool, r repository.User, authRepo repository.Auth, op
 func (s *user) Create(ctx context.Context, name string, phone string, password string) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
@@ -50,10 +50,10 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 
 	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if count > 0 {
-		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
 	}
 
 	user := &model.User{
@@ -63,11 +63,11 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 	}
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	passwordHash, err := security.HashPassword(password)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	auth := &model.Auth{
 		UserID:   user.ID,
@@ -75,12 +75,12 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
 	return user, nil
@@ -89,18 +89,18 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return user, nil
 }
@@ -108,18 +108,18 @@ func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
 func (s *user) List(ctx context.Context) ([]*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	users, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return users, nil
 }
@@ -127,7 +127,7 @@ func (s *user) List(ctx context.Context) ([]*model.User, error) {
 func (s *user) Update(ctx context.Context, user *model.User, password string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
@@ -135,32 +135,32 @@ func (s *user) Update(ctx context.Context, user *model.User, password string) er
 
 	existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	if existing.UUID != user.UUID {
-		return status.Error(codes.PermissionDenied, errors.UNAUTHORIZED)
+		return errs.New(errors.New(""), errCode.AccessDenied)
 	}
 
 	// Check if password is correct
 	auth, err := s.authRepo.TGetById(ctx, tx, existing.ID)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	err = security.CheckPassword(auth.Password, password)
 	if err != nil {
-		return status.Error(codes.PermissionDenied, errors.INVALID_PASSWORD)
+		return errs.Wrap(err, "")
 	}
 
 	existing.Name = user.Name
 	existing.Phone = user.Phone
 	err = s.repo.TUpdate(ctx, tx, existing)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 }
@@ -173,23 +173,23 @@ func (s *user) Delete(ctx context.Context, uuid string) error {
 func (s *user) AdminCreated(ctx context.Context, name string, phone string, sellerUUID string) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return nil, status.Error(codes.NotFound, errors.USER_NOT_FOUND)
+		return nil, errs.Wrap(err, "")
 	}
 
 	phone = common.SanitizePhone(phone)
 
 	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
-		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+		return nil, errs.Wrap(err, "")
 	}
 	if count > 0 {
-		return nil, status.Error(codes.AlreadyExists, errors.USER_ALREADY_EXISTS)
+		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
 	}
 
 	user := &model.User{
@@ -199,12 +199,12 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	}
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	// This password will be changed by the user upon first login
 	passwordHash, err := security.HashPassword(security.RandomPassword())
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	auth := &model.Auth{
 		UserID:   user.ID,
@@ -212,12 +212,12 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 
 	opLog := &model.OperationLog{
@@ -235,24 +235,24 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 func (s *user) UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	user.Role = user.Role.ToggleRole(role, enabled)
 
 	err = s.repo.TUpdate(ctx, tx, user)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return user, nil
 }

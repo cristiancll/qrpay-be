@@ -2,12 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Stock interface {
@@ -36,21 +36,21 @@ func NewStock(pool *pgxpool.Pool, r repository.Stock, skuRepo repository.SKU, op
 func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*model.Stock, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	sku, err := s.skuRepo.TGetByUUID(ctx, tx, skuUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	count, err := s.repo.TCountBySKU(ctx, tx, sku.ID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if count > 0 {
-		return nil, status.Error(codes.AlreadyExists, errors.STOCK_ALREADY_EXISTS)
+		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
 	}
 
 	stock := &model.Stock{
@@ -59,12 +59,12 @@ func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*mo
 	}
 	err = s.repo.TCreate(ctx, tx, stock)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return stock, nil
 }
@@ -72,30 +72,30 @@ func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*mo
 func (s *stock) Update(ctx context.Context, uuid string, quantity int64) (*model.Stock, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	stock, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	sku, err := s.skuRepo.TGetById(ctx, tx, stock.SKU.ID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	stock.Quantity = quantity
 	stock.SKU = *sku
 
 	err = s.repo.TUpdate(ctx, tx, stock)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return stock, nil
 }
@@ -103,22 +103,22 @@ func (s *stock) Update(ctx context.Context, uuid string, quantity int64) (*model
 func (s *stock) Delete(ctx context.Context, uuid string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	stock, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	err = s.repo.TDelete(ctx, tx, stock)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 
@@ -127,18 +127,18 @@ func (s *stock) Delete(ctx context.Context, uuid string) error {
 func (s *stock) List(ctx context.Context) ([]*model.Stock, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	stocks, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return stocks, nil
 }

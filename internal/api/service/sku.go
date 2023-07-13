@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type SKU interface {
@@ -36,13 +35,13 @@ func NewSKU(pool *pgxpool.Pool, repo repository.SKU, itemRepo repository.Item, o
 func (s *sku) Create(ctx context.Context, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	item, err := s.itemRepo.TGetByUUID(ctx, tx, itemUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	sku := &model.SKU{
 		Name:        name,
@@ -52,12 +51,12 @@ func (s *sku) Create(ctx context.Context, itemUUID string, name string, descript
 	}
 	err = s.repo.TCreate(ctx, tx, sku)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return sku, nil
 }
@@ -65,17 +64,17 @@ func (s *sku) Create(ctx context.Context, itemUUID string, name string, descript
 func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name string, description string, price int64) (*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	sku, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	item, err := s.itemRepo.TGetByUUID(ctx, tx, itemUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	sku.Name = name
 	sku.Description = description
@@ -84,12 +83,12 @@ func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name str
 
 	err = s.repo.TUpdate(ctx, tx, sku)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return sku, nil
 }
@@ -97,22 +96,22 @@ func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name str
 func (s *sku) Delete(ctx context.Context, uuid string) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	sku, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	err = s.repo.TDelete(ctx, tx, sku)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 }
@@ -120,18 +119,18 @@ func (s *sku) Delete(ctx context.Context, uuid string) error {
 func (s *sku) List(ctx context.Context) ([]*model.SKU, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	skus, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return skus, nil
 }

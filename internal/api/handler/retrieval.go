@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	proto "github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
-	"github.com/cristiancll/qrpay-be/internal/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -33,16 +33,16 @@ func NewRetrieval(s service.Retrieval) Retrieval {
 func (r *retrieval) Create(ctx context.Context, req *proto.RetrievalCreateRequest) (*proto.RetrievalCreateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	sellerUUID, err := getUUIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	if req.UserUUID == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 
 	err = r.service.Create(ctx, req.UserUUID, sellerUUID, req.SaleItemUUIDs)
@@ -56,15 +56,15 @@ func (r *retrieval) Create(ctx context.Context, req *proto.RetrievalCreateReques
 func (r *retrieval) Update(ctx context.Context, req *proto.RetrievalUpdateRequest) (*proto.RetrievalUpdateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 
 	retrieval, err := r.service.Update(ctx, req.Uuid, req.Delivered)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	return &proto.RetrievalUpdateResponse{
@@ -89,10 +89,10 @@ func (r *retrieval) Update(ctx context.Context, req *proto.RetrievalUpdateReques
 func (r *retrieval) Delete(ctx context.Context, req *proto.RetrievalDeleteRequest) (*proto.RetrievalDeleteResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 
 	err = r.service.Delete(ctx, req.Uuid)
@@ -105,15 +105,15 @@ func (r *retrieval) Delete(ctx context.Context, req *proto.RetrievalDeleteReques
 func (r *retrieval) Get(ctx context.Context, req *proto.RetrievalGetRequest) (*proto.RetrievalGetResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 
 	retrieval, err := r.service.Get(ctx, req.Uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	return &proto.RetrievalGetResponse{
@@ -138,12 +138,12 @@ func (r *retrieval) Get(ctx context.Context, req *proto.RetrievalGetRequest) (*p
 func (r *retrieval) List(ctx context.Context, req *proto.RetrievalListRequest) (*proto.RetrievalListResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	retrievals, err := r.service.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	res := &proto.RetrievalListResponse{

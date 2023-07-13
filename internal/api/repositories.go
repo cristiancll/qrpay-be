@@ -1,8 +1,10 @@
 package server
 
 import (
-	"fmt"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 )
 
 type repositories struct {
@@ -21,52 +23,52 @@ type repositories struct {
 func (s *Server) createRepositories() error {
 	s.repos.user = repository.NewUser(s.db)
 	if err := s.repos.user.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate user repository: %v", err)
+		return errs.New(errors.New("unable to migrate user repository: %v"), errCode.Internal)
 	}
 
 	s.repos.auth = repository.NewAuth(s.db)
 	if err := s.repos.auth.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate auth repository: %v", err)
+		return errs.New(errors.New("unable to migrate auth repository: %v"), errCode.Internal)
 	}
 
 	s.repos.category = repository.NewCategory(s.db)
 	if err := s.repos.category.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate category repository: %v", err)
+		return errs.New(errors.New("unable to migrate category repository: %v"), errCode.Internal)
 	}
 
 	s.repos.item = repository.NewItem(s.db)
 	if err := s.repos.item.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate item repository: %v", err)
+		return errs.New(errors.New("unable to migrate item repository: %v"), errCode.Internal)
 	}
 
 	s.repos.opLog = repository.NewOperationLog(s.db)
 	if err := s.repos.opLog.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate operation log repository: %v", err)
+		return errs.New(errors.New("unable to migrate operation log repository: %v"), errCode.Internal)
 	}
 
 	s.repos.sale = repository.NewSale(s.db)
 	if err := s.repos.sale.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate sale repository: %v", err)
+		return errs.New(errors.New("unable to migrate sale repository: %v"), errCode.Internal)
 	}
 
 	s.repos.sku = repository.NewSKU(s.db)
 	if err := s.repos.sku.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate sku repository: %v", err)
+		return errs.New(errors.New("unable to migrate sku repository: %v"), errCode.Internal)
 	}
 
 	s.repos.saleItem = repository.NewSaleItem(s.db)
 	if err := s.repos.saleItem.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate sale item repository: %v", err)
+		return errs.New(errors.New("unable to migrate sale item repository: %v"), errCode.Internal)
 	}
 
 	s.repos.retrieval = repository.NewRetrieval(s.db)
 	if err := s.repos.retrieval.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate retrieval repository: %v", err)
+		return errs.New(errors.New("unable to migrate retrieval repository: %v"), errCode.Internal)
 	}
 
 	s.repos.stock = repository.NewStock(s.db)
 	if err := s.repos.stock.Migrate(s.context); err != nil {
-		return fmt.Errorf("unable to migrate stock repository: %v", err)
+		return errs.New(errors.New("unable to migrate stock repository: %v"), errCode.Internal)
 	}
 	return nil
 }

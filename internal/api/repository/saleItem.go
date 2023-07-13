@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -43,7 +44,7 @@ func (r *saleItem) TCreate(ctx context.Context, tx pgx.Tx, item *model.SaleItem)
 	query := `INSERT INTO sale_items (uuid, sale_id, sku_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	id, err := tCreate(ctx, tx, query, item.UUID, item.Sale.ID, item.SKU.ID, item.CreatedAt, item.UpdatedAt)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	item.ID = id
 	return nil

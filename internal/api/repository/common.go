@@ -2,17 +2,16 @@ package repository
 
 import (
 	"context"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/go-errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 func create(ctx context.Context, db *pgxpool.Pool, query string, args ...any) (int64, error) {
 	tx, err := db.Begin(ctx)
 	if err != nil {
-		return 0, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return 0, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
@@ -20,12 +19,12 @@ func create(ctx context.Context, db *pgxpool.Pool, query string, args ...any) (i
 	var id int64
 	err = row.Scan(&id)
 	if err != nil {
-		return id, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return id, errs.New(err, errCode.Internal)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return id, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return id, errs.New(err, errCode.Internal)
 	}
 	return id, nil
 }
@@ -39,7 +38,7 @@ func tCreate(ctx context.Context, tx pgx.Tx, query string, args ...any) (int64, 
 	var id int64
 	err := row.Scan(&id)
 	if err != nil {
-		return id, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return id, errs.New(err, errCode.Internal)
 	}
 	return id, nil
 }
@@ -51,10 +50,10 @@ type TUpdater[E any] interface {
 func tUpdate(ctx context.Context, tx pgx.Tx, query string, args ...any) error {
 	cmd, err := tx.Exec(ctx, query, args...)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	if cmd.RowsAffected() == 0 {
-		return status.Error(codes.NotFound, errors.NO_ROWS_AFFECTED)
+		return errs.New(err, errCode.NotChanged)
 	}
 	return nil
 }
@@ -66,10 +65,10 @@ type TDeleter[E any] interface {
 func tDelete(ctx context.Context, tx pgx.Tx, query string, args ...any) error {
 	cmd, err := tx.Exec(ctx, query, args)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	if cmd.RowsAffected() == 0 {
-		return status.Error(codes.NotFound, errors.NO_ROWS_AFFECTED)
+		return errs.New(err, errCode.NotChanged)
 	}
 	return nil
 }
@@ -84,15 +83,15 @@ type TGetterByUUID[E any] interface {
 func tGet[T any](ctx context.Context, tx pgx.Tx, query string, args ...any) (*T, error) {
 	rows, err := tx.Query(ctx, query, args...)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer rows.Close()
 	entity, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[T])
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, status.Error(codes.NotFound, errors.NO_ROWS_FOUND)
+			return nil, errs.New(err, errCode.NotFound)
 		}
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return &entity, nil
 }
@@ -104,15 +103,15 @@ type TGetterAll[E any] interface {
 func tGetAll[T any](ctx context.Context, tx pgx.Tx, query string, args ...any) ([]*T, error) {
 	rows, err := tx.Query(ctx, query, args)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer rows.Close()
 	entities, err := pgx.CollectRows(rows, pgx.RowToStructByName[T])
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, status.Error(codes.NotFound, errors.NO_ROWS_FOUND)
+			return nil, errs.New(err, errCode.NotFound)
 		}
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	entitiesPtr := make([]*T, len(entities))
 	for i := range entities {
@@ -131,9 +130,9 @@ func tCount(ctx context.Context, tx pgx.Tx, query string, args ...any) (int64, e
 	err := row.Scan(&count)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return count, status.Error(codes.NotFound, errors.NO_ROWS_FOUND)
+			return count, errs.New(err, errCode.NotFound)
 		}
-		return count, status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return count, errs.New(err, errCode.Internal)
 	}
 	return count, nil
 }
@@ -145,17 +144,17 @@ type Migrater interface {
 func migrate(ctx context.Context, pool *pgxpool.Pool, query string) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	_, err = tx.Exec(ctx, query)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 }

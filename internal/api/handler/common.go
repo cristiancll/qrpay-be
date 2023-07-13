@@ -2,11 +2,11 @@ package handler
 
 import (
 	"context"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/google/uuid"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"strconv"
 )
 
@@ -29,16 +29,16 @@ type Deleter[E any, REQ any, RES any] interface {
 func getUUIDFromContext(ctx context.Context) (string, error) {
 	ctxUUID := ctx.Value("UUID")
 	if ctxUUID == nil {
-		return "", status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+		return "", errs.New(errors.New(""), errCode.Internal)
 	}
 
 	stringUUID, ok := ctxUUID.(string)
 	if !ok {
-		return "", status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+		return "", errs.New(errors.New(""), errCode.Internal)
 	}
 
 	if err := checkValidUUID(stringUUID); err != nil {
-		return "", err
+		return "", errs.Wrap(err, "")
 	}
 
 	return stringUUID, nil
@@ -47,17 +47,17 @@ func getUUIDFromContext(ctx context.Context) (string, error) {
 func getRoleFromContext(ctx context.Context) (roles.Role, error) {
 	ctxRole := ctx.Value("Role")
 	if ctxRole == nil {
-		return 0, status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+		return 0, errs.New(errors.New(""), errCode.Internal)
 	}
 
 	stringRole, ok := ctxRole.(string)
 	if !ok {
-		return 0, status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+		return 0, errs.New(errors.New(""), errCode.Internal)
 	}
 
 	intRole, err := strconv.ParseInt(stringRole, 10, 64)
 	if err != nil {
-		return 0, status.Error(codes.Unauthenticated, errors.UNAUTHORIZED)
+		return 0, errs.New(errors.New(""), errCode.Internal)
 	}
 
 	return roles.Role(intRole), nil
@@ -66,10 +66,10 @@ func getRoleFromContext(ctx context.Context) (roles.Role, error) {
 func checkAdminAuthorization(ctx context.Context) error {
 	role, err := getRoleFromContext(ctx)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	if !role.IsAdmin() {
-		return status.Error(codes.PermissionDenied, errors.PERMISSION_DENIED)
+		return errs.New(errors.New(""), errCode.Unauthorized)
 	}
 	return nil
 }
@@ -77,10 +77,10 @@ func checkAdminAuthorization(ctx context.Context) error {
 func checkStaffAuthorization(ctx context.Context) error {
 	role, err := getRoleFromContext(ctx)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	if !role.IsAdmin() && !role.IsBilling() && !role.IsManager() && !role.IsSeller() {
-		return status.Error(codes.PermissionDenied, errors.PERMISSION_DENIED)
+		return errs.New(errors.New(""), errCode.Unauthorized)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func checkStaffAuthorization(ctx context.Context) error {
 func checkValidUUID(id string) error {
 	_, err := uuid.Parse(id)
 	if err != nil {
-		return status.Error(codes.InvalidArgument, errors.INVALID_UUID)
+		return errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	return nil
 }

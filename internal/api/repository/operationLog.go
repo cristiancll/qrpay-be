@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -43,7 +44,7 @@ func (r *operationLog) Create(ctx context.Context, log *model.OperationLog) erro
 	query := `INSERT INTO operation_logs(uuid, userId, sellerId, operation, operationId, metadata, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
 	id, err := create(ctx, r.db, query, log.UUID, log.User.ID, log.Seller.ID, log.Operation, log.OperationId, log.Metadata, log.CreatedAt, log.UpdatedAt)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	log.ID = id
 	return nil

@@ -2,14 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/common"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Auth interface {
@@ -36,31 +36,31 @@ func NewAuth(pool *pgxpool.Pool, r repository.Auth, userRepo repository.User, op
 func (s *auth) Login(ctx context.Context, phone string, password string) (*model.User, *model.Auth, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 	sanitizedPhone := common.SanitizePhone(phone)
 	user, err := s.userRepo.GetUserByPhone(ctx, tx, sanitizedPhone)
 	if err != nil {
-		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
+		return nil, nil, errs.Wrap(err, "")
 	}
 	auth, err := s.repo.TGetById(ctx, tx, user.ID)
 	if err != nil {
-		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
+		return nil, nil, errs.Wrap(err, "")
 	}
 	if !auth.Verified {
-		return nil, nil, status.Error(codes.PermissionDenied, errors.VERIFICATION_ERROR)
+		return nil, nil, errs.New(errors.New(""), errCode.AccessDenied)
 	}
 	if auth.Disabled {
-		return nil, nil, status.Error(codes.PermissionDenied, errors.DISABLED_USER)
+		return nil, nil, errs.New(errors.New(""), errCode.AccessDenied)
 	}
 	err = security.CheckPassword(auth.Password, password)
 	if err != nil {
-		return nil, nil, status.Error(codes.PermissionDenied, errors.INVALID_CREDENTIALS)
+		return nil, nil, errs.Wrap(err, "")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, nil, errs.New(err, errCode.Internal)
 	}
 	return user, auth, nil
 }
@@ -69,20 +69,20 @@ func (s *auth) Heartbeat(ctx context.Context) (*model.User, *model.Auth, error) 
 	UUID := ctx.Value("UUID").(string)
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 	user, err := s.userRepo.TGetByUUID(ctx, tx, UUID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.Wrap(err, "")
 	}
 	auth, err := s.repo.TGetById(ctx, tx, user.ID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errs.Wrap(err, "")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, nil, errs.New(err, errCode.Internal)
 	}
 	return user, auth, nil
 }

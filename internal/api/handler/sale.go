@@ -2,8 +2,11 @@ package handler
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -26,35 +29,35 @@ func NewSale(s service.Sale) Sale {
 func (s *sale) Create(ctx context.Context, req *proto.SaleCreateRequest) (*proto.SaleCreateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	sellerUUID, err := getUUIDFromContext(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	saleUnits := req.GetUnits()
 	if len(req.GetUnits()) == 0 {
-		return nil, err
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	saleItemsMap := make(map[string]int64, len(saleUnits))
 	for _, unit := range saleUnits {
 		err = checkValidUUID(unit.SkuUUID)
 		if err != nil {
-			return nil, err
+			return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 		}
 		if unit.Quantity == 0 {
-			return nil, err
+			return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 		}
 		saleItemsMap[unit.SkuUUID] = unit.Quantity
 	}
 
 	sale, err := s.service.Create(ctx, req.UserUUID, sellerUUID, saleItemsMap)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	res := &proto.SaleCreateResponse{
@@ -78,14 +81,17 @@ func (s *sale) Create(ctx context.Context, req *proto.SaleCreateRequest) (*proto
 func (s *sale) ListSaleItemsByUser(ctx context.Context, req *proto.ListSaleItemsByUserRequest) (*proto.ListSaleItemsByUserResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	saleItems, err := s.service.ListSaleItemsByUser(ctx, req.UserUUID)
+	if err != nil {
+		return nil, errs.Wrap(err, "")
+	}
 
 	res := &proto.ListSaleItemsByUserResponse{
 		SaleItems: make([]*proto.SaleItem, len(saleItems)),
@@ -110,14 +116,17 @@ func (s *sale) ListSaleItemsByUser(ctx context.Context, req *proto.ListSaleItems
 func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, req *proto.ListAvailableSaleItemsByUserRequest) (*proto.ListAvailableSaleItemsByUserResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	saleItems, err := s.service.ListAvailableSaleItemsByUser(ctx, req.UserUUID)
+	if err != nil {
+		return nil, errs.Wrap(err, "")
+	}
 
 	res := &proto.ListAvailableSaleItemsByUserResponse{
 		SaleItems: make([]*proto.SaleItem, len(saleItems)),

@@ -2,13 +2,11 @@ package repository
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
-	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -17,7 +15,6 @@ type User interface {
 	TCRUDer[model.User]
 	CountByPhone(ctx context.Context, tx pgx.Tx, phone string) (int64, error)
 	GetUserByPhone(ctx context.Context, tx pgx.Tx, phone string) (*model.User, error)
-	GetVerifiedList(ctx context.Context) ([]string, error)
 }
 
 type user struct {
@@ -26,37 +23,6 @@ type user struct {
 
 func NewUser(db *pgxpool.Pool) User {
 	return &user{db: db}
-}
-
-func (r *user) GetVerifiedList(ctx context.Context) ([]string, error) {
-	tx, err := r.db.Begin(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	defer tx.Rollback(ctx)
-
-	query := "SELECT u.phone FROM users u INNER JOIN auths a ON u.id = a.user_id WHERE a.verified = true"
-	rows, err := tx.Query(ctx, query)
-	if err == pgx.ErrNoRows {
-		return nil, status.Error(codes.NotFound, errors.NO_USERS_FOUND)
-	} else if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	defer rows.Close()
-	var phones []string
-	for rows.Next() {
-		var phone string
-		err = rows.Scan(&phone)
-		if err != nil {
-			return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-		}
-		phones = append(phones, phone)
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, errors.DATABASE_ERROR)
-	}
-	return phones, nil
 }
 
 func (r *user) GetUserByPhone(ctx context.Context, tx pgx.Tx, phone string) (*model.User, error) {
@@ -76,7 +42,7 @@ func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	query := "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
 	id, err := tCreate(ctx, tx, query, user.UUID, user.Name, user.Role, user.Phone, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	user.ID = id
 	return nil

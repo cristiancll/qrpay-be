@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
-	"github.com/cristiancll/qrpay-be/internal/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,14 +31,14 @@ func NewCategory(s service.Category) Category {
 func (c *category) Create(ctx context.Context, req *proto.CategoryCreateRequest) (*proto.CategoryCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	category, err := c.service.Create(ctx, req.Name)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.CategoryCreateResponse{
 		Category: &proto.Category{
@@ -54,17 +54,17 @@ func (c *category) Create(ctx context.Context, req *proto.CategoryCreateRequest)
 func (c *category) Update(ctx context.Context, req *proto.CategoryUpdateRequest) (*proto.CategoryUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	category, err := c.service.Update(ctx, req.Uuid, req.Name)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.CategoryUpdateResponse{
 		Category: &proto.Category{
@@ -80,14 +80,14 @@ func (c *category) Update(ctx context.Context, req *proto.CategoryUpdateRequest)
 func (c *category) Delete(ctx context.Context, req *proto.CategoryDeleteRequest) (*proto.CategoryDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	err = c.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.CategoryDeleteResponse{}
 	return res, nil
@@ -96,11 +96,11 @@ func (c *category) Delete(ctx context.Context, req *proto.CategoryDeleteRequest)
 func (c *category) List(ctx context.Context, req *proto.CategoryListRequest) (*proto.CategoryListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	categories, err := c.service.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.CategoryListResponse{}
 	for _, category := range categories {

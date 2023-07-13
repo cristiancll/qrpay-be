@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Category interface {
@@ -34,7 +33,7 @@ func NewCategory(pool *pgxpool.Pool, r repository.Category, opLogRepo repository
 func (c category) Create(ctx context.Context, name string) (*model.Category, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
@@ -43,12 +42,12 @@ func (c category) Create(ctx context.Context, name string) (*model.Category, err
 	}
 	err = c.repo.TCreate(ctx, tx, category)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return category, nil
 }
@@ -56,22 +55,22 @@ func (c category) Create(ctx context.Context, name string) (*model.Category, err
 func (c category) Update(ctx context.Context, uuid string, name string) (*model.Category, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	existing, err := c.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	existing.Name = name
 	err = c.repo.TUpdate(ctx, tx, existing)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return existing, nil
 }
@@ -79,20 +78,20 @@ func (c category) Update(ctx context.Context, uuid string, name string) (*model.
 func (c category) Delete(ctx context.Context, uuid string) error {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 	existing, err := c.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	err = c.repo.TDelete(ctx, tx, existing)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 
@@ -101,17 +100,17 @@ func (c category) Delete(ctx context.Context, uuid string) error {
 func (c category) List(ctx context.Context) ([]*model.Category, error) {
 	tx, err := c.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	categories, err := c.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return categories, nil
 }

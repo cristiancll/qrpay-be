@@ -2,12 +2,12 @@ package handler
 
 import (
 	"context"
+	"errors"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
-	"github.com/cristiancll/qrpay-be/internal/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,21 +31,21 @@ func NewSKU(s service.SKU) SKU {
 func (s *sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.SKUCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.ItemUUID == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.ITEM_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.Price == 0 {
-		return nil, status.Error(codes.InvalidArgument, errors.PRICE_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 
 	sku, err := s.service.Create(ctx, req.ItemUUID, req.Name, req.Description, req.Price)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	res := &proto.SKUCreateResponse{
@@ -76,23 +76,23 @@ func (s *sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.S
 func (s *sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.SKUUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.Name == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.NAME_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.ItemUUID == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.ITEM_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	if req.Price == 0 {
-		return nil, status.Error(codes.InvalidArgument, errors.PRICE_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	sku, err := s.service.Update(ctx, req.Uuid, req.ItemUUID, req.Name, req.Description, req.Price)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.SKUUpdateResponse{
 		Sku: &proto.SKU{
@@ -122,14 +122,14 @@ func (s *sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.S
 func (s *sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.SKUDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	if req.Uuid == "" {
-		return nil, status.Error(codes.InvalidArgument, errors.UUID_REQUIRED)
+		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
 	}
 	err = s.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	return &proto.SKUDeleteResponse{}, nil
 }
@@ -137,11 +137,11 @@ func (s *sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.S
 func (s *sku) List(ctx context.Context, req *proto.SKUListRequest) (*proto.SKUListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	skus, err := s.service.List(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	res := &proto.SKUListResponse{
 		Skus: make([]*proto.SKU, 0),

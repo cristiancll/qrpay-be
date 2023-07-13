@@ -3,15 +3,15 @@ package middleware
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"net/http"
 	"strings"
 )
@@ -33,22 +33,22 @@ func authlessEndpoint(info *grpc.UnaryServerInfo) bool {
 func getTokenFromCookie(ctx context.Context) (*http.Cookie, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return nil, errs.New(errors.New(""), errCode.Internal)
 	}
 
 	cookies := md.Get("cookie")
 	if len(cookies) == 0 {
-		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return nil, errs.New(errors.New(""), errCode.Internal)
 	}
 	cookie := http.Header{"Cookie": []string{cookies[0]}}
 	requestCookie, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.AUTH_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	requestCookie.Header = cookie
 	jwtToken, err := requestCookie.Cookie("jwtToken")
 	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return jwtToken, nil
 }
@@ -80,16 +80,16 @@ func extractToken(tokenStrings []string) (string, error) {
 func getTokenFromAuthorization(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return "", errs.New(errors.New(""), errCode.Internal)
 	}
 
 	tokenStrings := md.Get("Authorization")
 	if len(tokenStrings) == 0 {
-		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return "", errs.New(errors.New(""), errCode.Internal)
 	}
 	token, err := extractToken(tokenStrings)
 	if err != nil {
-		return "", status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return "", errs.New(err, errCode.Internal)
 	}
 	return token, nil
 }
@@ -104,26 +104,26 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	if configs.Get().JWT.IsSourceCookies() {
 		jwtToken, err := getTokenFromCookie(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errs.New(err, errCode.Internal)
 		}
 		tokenString = jwtToken.Value
 	} else {
 		tokenString, err = getTokenFromAuthorization(ctx)
 		if err != nil {
-			return nil, err
+			return nil, errs.New(err, errCode.Internal)
 		}
 	}
 
 	publicKey := configs.Get().Keys.JWT.PublicKey
 	claims, refreshedToken, err := security.VerifyJWTToken(tokenString, publicKey)
 	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, errors.AUTH_ERROR)
+		return nil, errs.Wrap(errors.New(""), "")
 	}
 	if refreshedToken != "" {
 		if configs.Get().JWT.IsSourceCookies() {
 			err = security.UpdateJWTCookie(ctx, refreshedToken)
 			if err != nil {
-				return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+				return nil, errs.New(err, errCode.Internal)
 			}
 		} else {
 			ctx = context.WithValue(ctx, "RefreshedToken", refreshedToken)
@@ -133,7 +133,7 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	var subjClaims security.SubjectClaims
 	err = json.Unmarshal([]byte(claims.Subject), &subjClaims)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	ctx = context.WithValue(ctx, "UUID", subjClaims.UUID)
 	ctx = context.WithValue(ctx, "Role", subjClaims.Role)

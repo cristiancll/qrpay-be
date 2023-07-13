@@ -2,13 +2,11 @@ package repository
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
-	"github.com/cristiancll/qrpay-be/internal/errors"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"time"
 )
 
@@ -48,7 +46,7 @@ func (r *retrieval) TCreate(ctx context.Context, tx pgx.Tx, retrieval *model.Ret
 	query := `INSERT INTO retrievals(uuid, user_id, seller_id, sale_item_id, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6) RETURNING id`
 	id, err := tCreate(ctx, tx, query, retrieval.UUID, retrieval.User.ID, retrieval.Seller.ID, retrieval.SaleItem.ID, retrieval.CreatedAt, retrieval.UpdatedAt)
 	if err != nil {
-		return status.Error(codes.Internal, errors.DATABASE_ERROR)
+		return errs.Wrap(err, "")
 	}
 	retrieval.ID = id
 	return nil

@@ -2,12 +2,11 @@ package service
 
 import (
 	"context"
+	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errors"
+	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type Retrieval interface {
@@ -40,26 +39,26 @@ func NewRetrieval(pool *pgxpool.Pool, r repository.Retrieval, userRepo repositor
 func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID string, saleItemUUIDs []string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	// Validates user
 	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	// Validates seller
 	seller, err := r.userRepo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	// Validates sale items
 	saleItems, err := r.saleItemRepo.TGetAllByUUIDs(ctx, tx, saleItemUUIDs)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	// Creates retrievals
@@ -71,7 +70,7 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 		}
 		err = r.repo.TCreate(ctx, tx, retrieval)
 		if err != nil {
-			return err
+			return errs.Wrap(err, "")
 		}
 		opLog := &model.OperationLog{
 			User:        *user,
@@ -84,7 +83,7 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	//go r.wpp.SendText(user, user.NewRetrieval(saleItems)) // TODO
 	return nil
@@ -93,23 +92,23 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 func (r *retrieval) Update(ctx context.Context, uuid string, delivered bool) (*model.Retrieval, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 	retrieval.Delivered = delivered
 	err = r.repo.TUpdate(ctx, tx, retrieval)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return retrieval, nil
 }
@@ -117,23 +116,23 @@ func (r *retrieval) Update(ctx context.Context, uuid string, delivered bool) (*m
 func (r *retrieval) Delete(ctx context.Context, uuid string) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	err = r.repo.TDelete(ctx, tx, retrieval)
 	if err != nil {
-		return err
+		return errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return errs.New(err, errCode.Internal)
 	}
 	return nil
 }
@@ -141,18 +140,18 @@ func (r *retrieval) Delete(ctx context.Context, uuid string) error {
 func (r *retrieval) Get(ctx context.Context, uuid string) (*model.Retrieval, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return retrieval, nil
 }
@@ -160,18 +159,18 @@ func (r *retrieval) Get(ctx context.Context, uuid string) (*model.Retrieval, err
 func (r *retrieval) List(ctx context.Context) ([]*model.Retrieval, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	retrievals, err := r.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return retrievals, nil
 }
@@ -179,23 +178,23 @@ func (r *retrieval) List(ctx context.Context) ([]*model.Retrieval, error) {
 func (r *retrieval) ListByUser(ctx context.Context, userUUID string) ([]*model.Retrieval, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	defer tx.Rollback(ctx)
 
 	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	retrievals, err := r.repo.TGetAllByUser(ctx, tx, user)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, "")
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, errors.INTERNAL_ERROR)
+		return nil, errs.New(err, errCode.Internal)
 	}
 	return retrievals, nil
 }
