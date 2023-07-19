@@ -4,6 +4,7 @@ import (
 	"context"
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,7 +41,7 @@ func (r *category) TCreate(ctx context.Context, tx pgx.Tx, category *model.Categ
 	query := "INSERT INTO categories (uuid, name, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
 	id, err := tCreate(ctx, tx, query, category.UUID, category.Name, category.CreatedAt, category.UpdatedAt)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedCreateCategory, category)
 	}
 	category.ID = id
 	return nil

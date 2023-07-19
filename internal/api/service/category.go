@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -42,7 +43,7 @@ func (c category) Create(ctx context.Context, name string) (*model.Category, err
 	}
 	err = c.repo.TCreate(ctx, tx, category)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateCategory, name)
 	}
 
 	err = tx.Commit(ctx)
@@ -61,12 +62,12 @@ func (c category) Update(ctx context.Context, uuid string, name string) (*model.
 
 	existing, err := c.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetCategory, uuid)
 	}
 	existing.Name = name
 	err = c.repo.TUpdate(ctx, tx, existing)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateCategory, uuid, name)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
@@ -83,11 +84,11 @@ func (c category) Delete(ctx context.Context, uuid string) error {
 	defer tx.Rollback(ctx)
 	existing, err := c.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetCategory, uuid)
 	}
 	err = c.repo.TDelete(ctx, tx, existing)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedDeleteCategory, uuid)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
@@ -106,7 +107,7 @@ func (c category) List(ctx context.Context) ([]*model.Category, error) {
 
 	categories, err := c.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllCategory)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
