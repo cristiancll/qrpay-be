@@ -83,7 +83,7 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 }
 
 func (r *retrieval) Update(ctx context.Context, uuid string, delivered bool) (*model.Retrieval, error) {
-	return Transaction[*model.Retrieval, error](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
+	return Transaction[*model.Retrieval](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
 		retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 		if err != nil {
 			return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
@@ -114,7 +114,7 @@ func (r *retrieval) Delete(ctx context.Context, uuid string) error {
 }
 
 func (r *retrieval) Get(ctx context.Context, uuid string) (*model.Retrieval, error) {
-	return Transaction[*model.Retrieval, error](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
+	return Transaction[*model.Retrieval](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
 		retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 		if err != nil {
 			return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
