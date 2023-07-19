@@ -4,6 +4,7 @@ import (
 	"context"
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -42,7 +43,7 @@ func (r *user) TCreate(ctx context.Context, tx pgx.Tx, user *model.User) error {
 	query := "INSERT INTO users (uuid, name, role, phone, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id"
 	id, err := tCreate(ctx, tx, query, user.UUID, user.Name, user.Role, user.Phone, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedCreateUser, user)
 	}
 	user.ID = id
 	return nil

@@ -8,6 +8,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/common"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -50,10 +51,10 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 
 	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCountUser)
 	}
 	if count > 0 {
-		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
+		return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
 	}
 
 	user := &model.User{
@@ -63,7 +64,7 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 	}
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
 	}
 	passwordHash, err := security.HashPassword(password)
 	if err != nil {
@@ -75,7 +76,7 @@ func (s *user) Create(ctx context.Context, name string, phone string, password s
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
 	}
 
 	err = tx.Commit(ctx)
@@ -95,7 +96,7 @@ func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
 
 	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
 	}
 
 	err = tx.Commit(ctx)
@@ -114,7 +115,7 @@ func (s *user) List(ctx context.Context) ([]*model.User, error) {
 
 	users, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllUser)
 	}
 
 	err = tx.Commit(ctx)
@@ -135,27 +136,24 @@ func (s *user) Update(ctx context.Context, user *model.User, password string) er
 
 	existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
 	if err != nil {
-		return errs.Wrap(err, "")
-	}
-	if existing.UUID != user.UUID {
-		return errs.New(errors.New(""), errCode.AccessDenied)
+		return errs.Wrap(err, errMsg.FailedGetUser, user.UUID)
 	}
 
 	// Check if password is correct
 	auth, err := s.authRepo.TGetById(ctx, tx, existing.ID)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetAuth, existing.ID)
 	}
 	err = security.CheckPassword(auth.Password, password)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.IncorrectPassword)
 	}
 
 	existing.Name = user.Name
 	existing.Phone = user.Phone
 	err = s.repo.TUpdate(ctx, tx, existing)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedUpdateUser, existing)
 	}
 
 	err = tx.Commit(ctx)
@@ -179,17 +177,17 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 
 	seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
 	}
 
 	phone = common.SanitizePhone(phone)
 
 	count, err := s.repo.CountByPhone(ctx, tx, phone)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCountUser)
 	}
 	if count > 0 {
-		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
+		return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
 	}
 
 	user := &model.User{
@@ -199,7 +197,7 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	}
 	err = s.repo.TCreate(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
 	}
 	// This password will be changed by the user upon first login
 	passwordHash, err := security.HashPassword(security.RandomPassword())
@@ -212,7 +210,7 @@ func (s *user) AdminCreated(ctx context.Context, name string, phone string, sell
 	}
 	err = s.authRepo.TCreate(ctx, tx, auth)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
 	}
 
 	err = tx.Commit(ctx)
@@ -241,13 +239,13 @@ func (s *user) UpdateRole(ctx context.Context, uuid string, role roles.Role, ena
 
 	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
 	}
 	user.Role = user.Role.ToggleRole(role, enabled)
 
 	err = s.repo.TUpdate(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateUser, user)
 	}
 
 	err = tx.Commit(ctx)
