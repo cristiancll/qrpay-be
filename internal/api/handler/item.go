@@ -8,6 +8,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,17 +32,17 @@ func NewItem(s service.Item) Item {
 func (i item) Create(ctx context.Context, req *proto.ItemCreateRequest) (*proto.ItemCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Name == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.NameRequired), errCode.InvalidArgument)
 	}
 	if req.CategoryUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.CategoryUUIDRequired), errCode.InvalidArgument)
 	}
 	item, err := i.service.Create(ctx, req.Name, req.CategoryUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateItem, req.Name, req.CategoryUUID)
 	}
 	res := &proto.ItemCreateResponse{
 		Item: &proto.Item{
@@ -61,17 +62,17 @@ func (i item) Create(ctx context.Context, req *proto.ItemCreateRequest) (*proto.
 func (i item) Update(ctx context.Context, req *proto.ItemUpdateRequest) (*proto.ItemUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Name == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.NameRequired), errCode.InvalidArgument)
 	}
 	if req.CategoryUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.CategoryUUIDRequired), errCode.InvalidArgument)
 	}
 	item, err := i.service.Update(ctx, req.Uuid, req.Name, req.CategoryUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateItem, req.Uuid, req.Name, req.CategoryUUID)
 	}
 	res := &proto.ItemUpdateResponse{
 		Item: &proto.Item{
@@ -91,14 +92,14 @@ func (i item) Update(ctx context.Context, req *proto.ItemUpdateRequest) (*proto.
 func (i item) Delete(ctx context.Context, req *proto.ItemDeleteRequest) (*proto.ItemDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 	err = i.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedDeleteItem, req.Uuid)
 	}
 	res := &proto.ItemDeleteResponse{}
 	return res, nil
@@ -108,11 +109,11 @@ func (i item) Delete(ctx context.Context, req *proto.ItemDeleteRequest) (*proto.
 func (i item) List(ctx context.Context, req *proto.ItemListRequest) (*proto.ItemListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	items, err := i.service.List(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllItem)
 	}
 	res := &proto.ItemListResponse{
 		Items: make([]*proto.Item, 0),

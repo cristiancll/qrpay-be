@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -41,7 +42,7 @@ func (i *item) Create(ctx context.Context, name string, categoryUUID string) (*m
 
 	category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
 	}
 	item := &model.Item{
 		Name:     name,
@@ -49,7 +50,7 @@ func (i *item) Create(ctx context.Context, name string, categoryUUID string) (*m
 	}
 	err = i.repo.TCreate(ctx, tx, item)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateItem, categoryUUID, name)
 	}
 
 	err = tx.Commit(ctx)
@@ -68,11 +69,11 @@ func (i *item) Update(ctx context.Context, uuid string, name string, categoryUUI
 
 	item, err := i.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetItem, uuid)
 	}
 	category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
 	}
 
 	item.Name = name
@@ -80,7 +81,7 @@ func (i *item) Update(ctx context.Context, uuid string, name string, categoryUUI
 
 	err = i.repo.TUpdate(ctx, tx, item)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateItem, uuid, name)
 	}
 
 	err = tx.Commit(ctx)
@@ -99,11 +100,11 @@ func (i *item) Delete(ctx context.Context, uuid string) error {
 
 	item, err := i.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetItem, uuid)
 	}
 	err = i.repo.TDelete(ctx, tx, item)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedDeleteItem, uuid)
 	}
 
 	err = tx.Commit(ctx)
@@ -122,7 +123,7 @@ func (i *item) List(ctx context.Context) ([]*model.Item, error) {
 
 	items, err := i.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllItem)
 	}
 	err = tx.Commit(ctx)
 	if err != nil {
