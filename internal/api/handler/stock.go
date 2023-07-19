@@ -7,6 +7,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -30,18 +31,18 @@ func NewStock(s service.Stock) Stock {
 func (s stock) Create(ctx context.Context, req *proto.StockCreateRequest) (*proto.StockCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.SkuUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.SKUUUIDRequired), errCode.InvalidArgument)
 	}
 	if req.Quantity == 0 {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.QuantityRequired), errCode.InvalidArgument)
 	}
 
 	stock, err := s.service.Create(ctx, req.SkuUUID, req.Quantity)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateStock, req.SkuUUID, req.Quantity)
 	}
 	res := &proto.StockCreateResponse{
 		Stock: &proto.Stock{
@@ -63,17 +64,17 @@ func (s stock) Create(ctx context.Context, req *proto.StockCreateRequest) (*prot
 func (s stock) Update(ctx context.Context, req *proto.StockUpdateRequest) (*proto.StockUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 	if req.Quantity == 0 {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.QuantityRequired), errCode.InvalidArgument)
 	}
 	stock, err := s.service.Update(ctx, req.Uuid, req.Quantity)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateStock, req.Uuid, req.Quantity)
 	}
 	res := &proto.StockUpdateResponse{
 		Stock: &proto.Stock{
@@ -95,14 +96,14 @@ func (s stock) Update(ctx context.Context, req *proto.StockUpdateRequest) (*prot
 func (s *stock) Delete(ctx context.Context, req *proto.StockDeleteRequest) (*proto.StockDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 	err = s.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedDeleteStock, req.Uuid)
 	}
 	return &proto.StockDeleteResponse{}, nil
 
@@ -111,11 +112,11 @@ func (s *stock) Delete(ctx context.Context, req *proto.StockDeleteRequest) (*pro
 func (s stock) List(ctx context.Context, req *proto.StockListRequest) (*proto.StockListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	stocks, err := s.service.List(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllStock)
 	}
 	res := &proto.StockListResponse{
 		Stocks: make([]*proto.Stock, 0),
