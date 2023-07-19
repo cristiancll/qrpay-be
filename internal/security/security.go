@@ -7,6 +7,7 @@ import (
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
@@ -55,12 +56,12 @@ func VerifyJWTToken(tokenString string, publicKey *ecdsa.PublicKey) (*jwt.Regist
 	token, err := jwt.ParseWithClaims(tokenString, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
 		signingMethod := jwt.GetSigningMethod(configs.Get().JWT.SigningAlgorithm)
 		if token.Method != signingMethod {
-			return nil, errs.New(errors.New(""), errCode.Unauthenticated)
+			return nil, errs.New(errors.New(errMsg.SigningMethodMismatch), errCode.Unauthenticated)
 		}
 
 		kid, ok := token.Header["kid"].(string)
 		if !ok || kid != configs.Get().JWT.KeyID {
-			return nil, errs.New(errors.New(""), errCode.Unauthenticated)
+			return nil, errs.New(errors.New(errMsg.KIDMismatch), errCode.Unauthenticated)
 		}
 
 		return publicKey, nil
@@ -69,19 +70,19 @@ func VerifyJWTToken(tokenString string, publicKey *ecdsa.PublicKey) (*jwt.Regist
 	var refreshedToken string
 
 	if err != nil {
-		return nil, refreshedToken, errs.New(errors.New(""), errCode.Unauthenticated)
+		return nil, refreshedToken, errs.New(err, errCode.Unauthenticated)
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok || !token.Valid {
-		return nil, refreshedToken, errs.New(errors.New(""), errCode.Unauthenticated)
+		return nil, refreshedToken, errs.New(errors.New(errMsg.InvalidToken), errCode.Unauthenticated)
 	}
 
 	now := time.Now().Unix()
 	expiresAt := claims.ExpiresAt.Time.Unix()
 	refreshTime := expiresAt - int64(configs.Get().JWT.GetRefreshThreshold().Seconds())
 	if now > expiresAt {
-		return nil, refreshedToken, errs.New(errors.New(""), errCode.Unauthenticated)
+		return nil, refreshedToken, errs.New(errors.New(errMsg.TokenExpired), errCode.Unauthenticated)
 	}
 
 	if now > refreshTime {
