@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -41,7 +42,7 @@ func (s *sku) Create(ctx context.Context, itemUUID string, name string, descript
 
 	item, err := s.itemRepo.TGetByUUID(ctx, tx, itemUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetItem, itemUUID)
 	}
 	sku := &model.SKU{
 		Name:        name,
@@ -51,7 +52,7 @@ func (s *sku) Create(ctx context.Context, itemUUID string, name string, descript
 	}
 	err = s.repo.TCreate(ctx, tx, sku)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateSKU, sku)
 	}
 
 	err = tx.Commit(ctx)
@@ -70,11 +71,11 @@ func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name str
 
 	sku, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetSKU, uuid)
 	}
 	item, err := s.itemRepo.TGetByUUID(ctx, tx, itemUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetItem, itemUUID)
 	}
 	sku.Name = name
 	sku.Description = description
@@ -83,7 +84,7 @@ func (s *sku) Update(ctx context.Context, uuid string, itemUUID string, name str
 
 	err = s.repo.TUpdate(ctx, tx, sku)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateSKU, sku)
 	}
 
 	err = tx.Commit(ctx)
@@ -102,11 +103,11 @@ func (s *sku) Delete(ctx context.Context, uuid string) error {
 
 	sku, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetSKU, uuid)
 	}
 	err = s.repo.TDelete(ctx, tx, sku)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedDeleteSKU, sku)
 	}
 
 	err = tx.Commit(ctx)
@@ -125,7 +126,7 @@ func (s *sku) List(ctx context.Context) ([]*model.SKU, error) {
 
 	skus, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSKU)
 	}
 
 	err = tx.Commit(ctx)

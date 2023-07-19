@@ -8,6 +8,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -31,21 +32,21 @@ func NewSKU(s service.SKU) SKU {
 func (s *sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.SKUCreateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Name == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.NameRequired), errCode.InvalidArgument)
 	}
 	if req.ItemUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.ItemUUIDRequired), errCode.InvalidArgument)
 	}
 	if req.Price == 0 {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.PriceRequired), errCode.InvalidArgument)
 	}
 
 	sku, err := s.service.Create(ctx, req.ItemUUID, req.Name, req.Description, req.Price)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateSKU, req.ItemUUID, req.Name, req.Description, req.Price)
 	}
 
 	res := &proto.SKUCreateResponse{
@@ -76,23 +77,23 @@ func (s *sku) Create(ctx context.Context, req *proto.SKUCreateRequest) (*proto.S
 func (s *sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.SKUUpdateResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 	if req.Name == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.NameRequired), errCode.InvalidArgument)
 	}
 	if req.ItemUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.ItemUUIDRequired), errCode.InvalidArgument)
 	}
 	if req.Price == 0 {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.PriceRequired), errCode.InvalidArgument)
 	}
 	sku, err := s.service.Update(ctx, req.Uuid, req.ItemUUID, req.Name, req.Description, req.Price)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateSKU, req.Uuid, req.ItemUUID, req.Name, req.Description, req.Price)
 	}
 	res := &proto.SKUUpdateResponse{
 		Sku: &proto.SKU{
@@ -122,14 +123,14 @@ func (s *sku) Update(ctx context.Context, req *proto.SKUUpdateRequest) (*proto.S
 func (s *sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.SKUDeleteResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 	err = s.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedDeleteSKU, req.Uuid)
 	}
 	return &proto.SKUDeleteResponse{}, nil
 }
@@ -137,11 +138,11 @@ func (s *sku) Delete(ctx context.Context, req *proto.SKUDeleteRequest) (*proto.S
 func (s *sku) List(ctx context.Context, req *proto.SKUListRequest) (*proto.SKUListResponse, error) {
 	err := checkAdminAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	skus, err := s.service.List(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSKU)
 	}
 	res := &proto.SKUListResponse{
 		Skus: make([]*proto.SKU, 0),
