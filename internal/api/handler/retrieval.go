@@ -8,6 +8,7 @@ import (
 	proto "github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -33,21 +34,21 @@ func NewRetrieval(s service.Retrieval) Retrieval {
 func (r *retrieval) Create(ctx context.Context, req *proto.RetrievalCreateRequest) (*proto.RetrievalCreateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 
 	sellerUUID, err := getUUIDFromContext(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUUIDContext)
 	}
 
 	if req.UserUUID == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UserUUIDRequired), errCode.InvalidArgument)
 	}
 
 	err = r.service.Create(ctx, req.UserUUID, sellerUUID, req.SaleItemUUIDs)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, errMsg.FailedCreateRetrieval, req.UserUUID, sellerUUID, req.SaleItemUUIDs)
 	}
 
 	return &proto.RetrievalCreateResponse{}, nil
@@ -56,15 +57,15 @@ func (r *retrieval) Create(ctx context.Context, req *proto.RetrievalCreateReques
 func (r *retrieval) Update(ctx context.Context, req *proto.RetrievalUpdateRequest) (*proto.RetrievalUpdateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 
 	retrieval, err := r.service.Update(ctx, req.Uuid, req.Delivered)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateRetrieval, req.Uuid, req.Delivered)
 	}
 
 	return &proto.RetrievalUpdateResponse{
@@ -89,15 +90,15 @@ func (r *retrieval) Update(ctx context.Context, req *proto.RetrievalUpdateReques
 func (r *retrieval) Delete(ctx context.Context, req *proto.RetrievalDeleteRequest) (*proto.RetrievalDeleteResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 
 	err = r.service.Delete(ctx, req.Uuid)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, errMsg.FailedDeleteRetrieval, req.Uuid)
 	}
 	return &proto.RetrievalDeleteResponse{}, nil
 }
@@ -105,15 +106,15 @@ func (r *retrieval) Delete(ctx context.Context, req *proto.RetrievalDeleteReques
 func (r *retrieval) Get(ctx context.Context, req *proto.RetrievalGetRequest) (*proto.RetrievalGetResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	if req.Uuid == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.UUIDRequired), errCode.InvalidArgument)
 	}
 
 	retrieval, err := r.service.Get(ctx, req.Uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, req.Uuid)
 	}
 
 	return &proto.RetrievalGetResponse{
@@ -138,12 +139,12 @@ func (r *retrieval) Get(ctx context.Context, req *proto.RetrievalGetRequest) (*p
 func (r *retrieval) List(ctx context.Context, req *proto.RetrievalListRequest) (*proto.RetrievalListResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 
 	retrievals, err := r.service.List(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval)
 	}
 
 	res := &proto.RetrievalListResponse{
