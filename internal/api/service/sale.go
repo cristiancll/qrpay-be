@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -47,13 +48,13 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 	}
 
 	// Validates seller
 	seller, err := s.userRepo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
 	}
 
 	// Gets SKUs UUIDs
@@ -65,7 +66,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	// Validates SKUs
 	skus, err := s.skuRepo.TGetAllByUUIDs(ctx, tx, skusIDs)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSKU, skusIDs)
 	}
 
 	// Calculates total amount
@@ -83,7 +84,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	}
 	err = s.repo.TCreate(ctx, tx, sale)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateSale, sale)
 	}
 
 	// Creates sale items
@@ -97,7 +98,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 			}
 			err = s.saleItemRepo.TCreate(ctx, tx, &saleItem)
 			if err != nil {
-				return nil, errs.Wrap(err, "")
+				return nil, errs.Wrap(err, errMsg.FailedCreateSaleItem, saleItem)
 			}
 			saleItems = append(saleItems, &saleItem)
 			opLog := &model.OperationLog{
@@ -114,7 +115,7 @@ func (s *sale) Create(ctx context.Context, userUUID string, sellerUUID string, s
 	for _, sku := range skus {
 		err = s.stockRepo.TDecreaseStock(ctx, tx, sku, saleUnits[sku.UUID])
 		if err != nil {
-			return nil, errs.Wrap(err, "")
+			return nil, errs.Wrap(err, errMsg.FailedUpdateStock, sku, saleUnits[sku.UUID])
 		}
 	}
 
@@ -136,13 +137,13 @@ func (s *sale) ListSaleItemsByUser(ctx context.Context, userUUID string) ([]*mod
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 	}
 
 	// Gets sale items
 	saleItems, err := s.saleItemRepo.TGetAllByUser(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSaleItem, user)
 	}
 
 	err = tx.Commit(ctx)
@@ -162,13 +163,13 @@ func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, userUUID string
 	// Validates user
 	user, err := s.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 	}
 
 	// Gets sale items
 	saleItems, err := s.saleItemRepo.TGetAllAvailableByUser(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSaleItem, user)
 	}
 
 	err = tx.Commit(ctx)
