@@ -6,6 +6,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -46,19 +47,19 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 	// Validates user
 	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 	}
 
 	// Validates seller
 	seller, err := r.userRepo.TGetByUUID(ctx, tx, sellerUUID)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
 	}
 
 	// Validates sale items
 	saleItems, err := r.saleItemRepo.TGetAllByUUIDs(ctx, tx, saleItemUUIDs)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetAllSaleItem, saleItemUUIDs)
 	}
 
 	// Creates retrievals
@@ -70,7 +71,7 @@ func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID stri
 		}
 		err = r.repo.TCreate(ctx, tx, retrieval)
 		if err != nil {
-			return errs.Wrap(err, "")
+			return errs.Wrap(err, errMsg.FailedCreateRetrieval, user, seller, saleItem)
 		}
 		opLog := &model.OperationLog{
 			User:        *user,
@@ -98,12 +99,12 @@ func (r *retrieval) Update(ctx context.Context, uuid string, delivered bool) (*m
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
 	}
 	retrieval.Delivered = delivered
 	err = r.repo.TUpdate(ctx, tx, retrieval)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateRetrieval, retrieval)
 	}
 
 	err = tx.Commit(ctx)
@@ -122,12 +123,12 @@ func (r *retrieval) Delete(ctx context.Context, uuid string) error {
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
 	}
 
 	err = r.repo.TDelete(ctx, tx, retrieval)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedDeleteRetrieval, retrieval)
 	}
 
 	err = tx.Commit(ctx)
@@ -146,7 +147,7 @@ func (r *retrieval) Get(ctx context.Context, uuid string) (*model.Retrieval, err
 
 	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
 	}
 
 	err = tx.Commit(ctx)
@@ -165,7 +166,7 @@ func (r *retrieval) List(ctx context.Context) ([]*model.Retrieval, error) {
 
 	retrievals, err := r.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval)
 	}
 
 	err = tx.Commit(ctx)
@@ -184,12 +185,12 @@ func (r *retrieval) ListByUser(ctx context.Context, userUUID string) ([]*model.R
 
 	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 	}
 
 	retrievals, err := r.repo.TGetAllByUser(ctx, tx, user)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval, user)
 	}
 
 	err = tx.Commit(ctx)
