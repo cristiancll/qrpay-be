@@ -4,6 +4,7 @@ import (
 	"context"
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"time"
@@ -52,7 +53,7 @@ func (r *auth) TCreate(ctx context.Context, tx pgx.Tx, auth *model.Auth) error {
 	query := "INSERT INTO auths (user_id, password, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
 	id, err := tCreate(ctx, tx, query, auth.UserID, auth.Password, auth.CreatedAt, auth.UpdatedAt)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedCreateAuth, auth.UserID)
 	}
 	auth.ID = id
 	return nil

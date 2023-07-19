@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"strconv"
@@ -35,14 +35,14 @@ func NewAuth(service service.Auth) Auth {
 
 func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.AuthLoginResponse, error) {
 	if req.Phone == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.PhoneRequired), errCode.InvalidArgument)
 	}
 	if req.Password == "" {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.PasswordRequired), errCode.InvalidArgument)
 	}
 	user, auth, err := h.service.Login(ctx, req.Phone, req.Password)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedLogin, req.Phone) // Don't log the password
 	}
 
 	privateKey := configs.Get().Keys.JWT.PrivateKey
@@ -88,7 +88,7 @@ func (h *auth) Login(ctx context.Context, req *proto.AuthLoginRequest) (*proto.A
 func (h *auth) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid, error) {
 	err := security.DeleteJWTCookie(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedDeleteCookie)
 	}
 	res := &proto.AuthVoid{}
 	return res, nil
@@ -97,7 +97,7 @@ func (h *auth) Logout(ctx context.Context, req *proto.AuthVoid) (*proto.AuthVoid
 func (h *auth) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthHeartbeatResponse, error) {
 	user, auth, err := h.service.Heartbeat(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errs.Wrap(err, errMsg.FailedHeartbeat)
 	}
 	res := &proto.AuthHeartbeatResponse{
 		User: &proto.User{
@@ -119,8 +119,7 @@ func (h *auth) Heartbeat(ctx context.Context, req *proto.AuthVoid) (*proto.AuthH
 		if refreshedToken != nil {
 			token, ok := refreshedToken.(string)
 			if !ok {
-				fmt.Printf("error casting token: %v\n", refreshedToken)
-				return nil, errs.New(errors.New(""), errCode.Internal)
+				return nil, errs.New(errors.New(errMsg.TokenNotString), errCode.Internal, refreshedToken)
 			}
 			if token != "" {
 				res.Token = &token
