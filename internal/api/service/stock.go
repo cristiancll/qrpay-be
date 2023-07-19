@@ -7,6 +7,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -42,15 +43,15 @@ func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*mo
 
 	sku, err := s.skuRepo.TGetByUUID(ctx, tx, skuUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetSKU, skuUUID)
 	}
 
 	count, err := s.repo.TCountBySKU(ctx, tx, sku.ID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCountStock, sku.ID)
 	}
 	if count > 0 {
-		return nil, errs.New(errors.New(""), errCode.AlreadyExists)
+		return nil, errs.New(errors.New(errMsg.StockAlreadyExists), errCode.AlreadyExists, skuUUID, count)
 	}
 
 	stock := &model.Stock{
@@ -59,7 +60,7 @@ func (s *stock) Create(ctx context.Context, skuUUID string, quantity int64) (*mo
 	}
 	err = s.repo.TCreate(ctx, tx, stock)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateStock, stock)
 	}
 
 	err = tx.Commit(ctx)
@@ -78,19 +79,19 @@ func (s *stock) Update(ctx context.Context, uuid string, quantity int64) (*model
 
 	stock, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetStock, uuid)
 	}
 
 	sku, err := s.skuRepo.TGetById(ctx, tx, stock.SKU.ID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetSKU, stock.SKU.ID)
 	}
 	stock.Quantity = quantity
 	stock.SKU = *sku
 
 	err = s.repo.TUpdate(ctx, tx, stock)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUpdateStock, stock)
 	}
 
 	err = tx.Commit(ctx)
@@ -109,11 +110,11 @@ func (s *stock) Delete(ctx context.Context, uuid string) error {
 
 	stock, err := s.repo.TGetByUUID(ctx, tx, uuid)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedGetStock, uuid)
 	}
 	err = s.repo.TDelete(ctx, tx, stock)
 	if err != nil {
-		return errs.Wrap(err, "")
+		return errs.Wrap(err, errMsg.FailedDeleteStock, stock)
 	}
 
 	err = tx.Commit(ctx)
@@ -133,7 +134,7 @@ func (s *stock) List(ctx context.Context) ([]*model.Stock, error) {
 
 	stocks, err := s.repo.TGetAll(ctx, tx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllStock)
 	}
 
 	err = tx.Commit(ctx)
