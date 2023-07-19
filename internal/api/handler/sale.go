@@ -7,6 +7,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/api/service"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -29,35 +30,35 @@ func NewSale(s service.Sale) Sale {
 func (s *sale) Create(ctx context.Context, req *proto.SaleCreateRequest) (*proto.SaleCreateResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	sellerUUID, err := getUUIDFromContext(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUUIDContext)
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.UUIDInvalid, req.UserUUID)
 	}
 	saleUnits := req.GetUnits()
 	if len(req.GetUnits()) == 0 {
-		return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+		return nil, errs.New(errors.New(errMsg.SaleUnitsRequired), errCode.InvalidArgument)
 	}
 	saleItemsMap := make(map[string]int64, len(saleUnits))
 	for _, unit := range saleUnits {
 		err = checkValidUUID(unit.SkuUUID)
 		if err != nil {
-			return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+			return nil, errs.New(errors.New(errMsg.UUIDInvalid), errCode.InvalidArgument)
 		}
 		if unit.Quantity == 0 {
-			return nil, errs.New(errors.New(""), errCode.InvalidArgument)
+			return nil, errs.New(errors.New(errMsg.QuantityRequired), errCode.InvalidArgument)
 		}
 		saleItemsMap[unit.SkuUUID] = unit.Quantity
 	}
 
 	sale, err := s.service.Create(ctx, req.UserUUID, sellerUUID, saleItemsMap)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedCreateSale, req.UserUUID, sellerUUID, saleItemsMap)
 	}
 
 	res := &proto.SaleCreateResponse{
@@ -81,16 +82,16 @@ func (s *sale) Create(ctx context.Context, req *proto.SaleCreateRequest) (*proto
 func (s *sale) ListSaleItemsByUser(ctx context.Context, req *proto.ListSaleItemsByUserRequest) (*proto.ListSaleItemsByUserResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUUIDContext, req.UserUUID)
 	}
 
 	saleItems, err := s.service.ListSaleItemsByUser(ctx, req.UserUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSaleItem, req.UserUUID)
 	}
 
 	res := &proto.ListSaleItemsByUserResponse{
@@ -116,16 +117,16 @@ func (s *sale) ListSaleItemsByUser(ctx context.Context, req *proto.ListSaleItems
 func (s *sale) ListAvailableSaleItemsByUser(ctx context.Context, req *proto.ListAvailableSaleItemsByUserRequest) (*proto.ListAvailableSaleItemsByUserResponse, error) {
 	err := checkStaffAuthorization(ctx)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedAuthCheck)
 	}
 	err = checkValidUUID(req.UserUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedUUIDContext, req.UserUUID)
 	}
 
 	saleItems, err := s.service.ListAvailableSaleItemsByUser(ctx, req.UserUUID)
 	if err != nil {
-		return nil, errs.Wrap(err, "")
+		return nil, errs.Wrap(err, errMsg.FailedGetAllSaleItem, req.UserUUID)
 	}
 
 	res := &proto.ListAvailableSaleItemsByUserResponse{
