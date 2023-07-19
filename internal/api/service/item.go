@@ -5,8 +5,8 @@ import (
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/errMsg"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,100 +34,67 @@ func NewItem(pool *pgxpool.Pool, r repository.Item, categoryRepo repository.Cate
 }
 
 func (i *item) Create(ctx context.Context, name string, categoryUUID string) (*model.Item, error) {
-	tx, err := i.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.Item](ctx, i.pool, func(tx pgx.Tx) (*model.Item, error) {
+		category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
+		}
+		item := &model.Item{
+			Name:     name,
+			Category: *category,
+		}
+		err = i.repo.TCreate(ctx, tx, item)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCreateItem, categoryUUID, name)
+		}
 
-	category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
-	}
-	item := &model.Item{
-		Name:     name,
-		Category: *category,
-	}
-	err = i.repo.TCreate(ctx, tx, item)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCreateItem, categoryUUID, name)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return item, nil
+		return item, nil
+	})
 }
 
 func (i *item) Update(ctx context.Context, uuid string, name string, categoryUUID string) (*model.Item, error) {
-	tx, err := i.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.Item](ctx, i.pool, func(tx pgx.Tx) (*model.Item, error) {
+		item, err := i.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetItem, uuid)
+		}
+		category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
+		}
 
-	item, err := i.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetItem, uuid)
-	}
-	category, err := i.categoryRepo.TGetByUUID(ctx, tx, categoryUUID)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetCategory, categoryUUID)
-	}
+		item.Name = name
+		item.Category = *category
 
-	item.Name = name
-	item.Category = *category
+		err = i.repo.TUpdate(ctx, tx, item)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedUpdateItem, uuid, name)
+		}
 
-	err = i.repo.TUpdate(ctx, tx, item)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedUpdateItem, uuid, name)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return item, nil
+		return item, nil
+	})
 }
 
 func (i *item) Delete(ctx context.Context, uuid string) error {
-	tx, err := i.pool.Begin(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	item, err := i.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetItem, uuid)
-	}
-	err = i.repo.TDelete(ctx, tx, item)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedDeleteItem, uuid)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	return nil
+	return TransactionVoid(ctx, i.pool, func(tx pgx.Tx) error {
+		item, err := i.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetItem, uuid)
+		}
+		err = i.repo.TDelete(ctx, tx, item)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedDeleteItem, uuid)
+		}
+		return nil
+	})
 }
 
 func (i *item) List(ctx context.Context) ([]*model.Item, error) {
-	tx, err := i.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	items, err := i.repo.TGetAll(ctx, tx)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetAllItem)
-	}
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return items, nil
+	return TransactionReturnList[*model.Item](ctx, i.pool, func(tx pgx.Tx) ([]*model.Item, error) {
+		items, err := i.repo.TGetAll(ctx, tx)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetAllItem)
+		}
+		return items, nil
+	})
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/cristiancll/qrpay-be/internal/roles"
 	"github.com/cristiancll/qrpay-be/internal/security"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -41,126 +42,92 @@ func NewUser(pool *pgxpool.Pool, r repository.User, authRepo repository.Auth, op
 }
 
 func (s *user) Create(ctx context.Context, name string, phone string, password string) (*model.User, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.User](ctx, s.pool, func(tx pgx.Tx) (*model.User, error) {
+		phone = common.SanitizePhone(phone)
 
-	phone = common.SanitizePhone(phone)
+		count, err := s.repo.CountByPhone(ctx, tx, phone)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCountUser)
+		}
+		if count > 0 {
+			return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
+		}
 
-	count, err := s.repo.CountByPhone(ctx, tx, phone)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCountUser)
-	}
-	if count > 0 {
-		return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
-	}
+		user := &model.User{
+			Name:  name,
+			Phone: phone,
+			Role:  roles.Client,
+		}
+		err = s.repo.TCreate(ctx, tx, user)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
+		}
+		passwordHash, err := security.HashPassword(password)
+		if err != nil {
+			return nil, errs.New(err, errCode.Internal)
+		}
+		auth := &model.Auth{
+			UserID:   user.ID,
+			Password: passwordHash,
+		}
+		err = s.authRepo.TCreate(ctx, tx, auth)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
+		}
 
-	user := &model.User{
-		Name:  name,
-		Phone: phone,
-		Role:  roles.Client,
-	}
-	err = s.repo.TCreate(ctx, tx, user)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
-	}
-	passwordHash, err := security.HashPassword(password)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	auth := &model.Auth{
-		UserID:   user.ID,
-		Password: passwordHash,
-	}
-	err = s.authRepo.TCreate(ctx, tx, auth)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
-	return user, nil
+		//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
+		return user, nil
+	})
 }
 
 func (s *user) Get(ctx context.Context, uuid string) (*model.User, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return user, nil
+	return Transaction[*model.User](ctx, s.pool, func(tx pgx.Tx) (*model.User, error) {
+		user, err := s.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
+		}
+		return user, nil
+	})
 }
 
 func (s *user) List(ctx context.Context) ([]*model.User, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	users, err := s.repo.TGetAll(ctx, tx)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetAllUser)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return users, nil
+	return TransactionReturnList[*model.User](ctx, s.pool, func(tx pgx.Tx) ([]*model.User, error) {
+		users, err := s.repo.TGetAll(ctx, tx)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetAllUser)
+		}
+		return users, nil
+	})
 }
 
 func (s *user) Update(ctx context.Context, user *model.User, password string) error {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return TransactionVoid(ctx, s.pool, func(tx pgx.Tx) error {
+		user.Phone = common.SanitizePhone(user.Phone)
 
-	user.Phone = common.SanitizePhone(user.Phone)
+		existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetUser, user.UUID)
+		}
 
-	existing, err := s.repo.TGetByUUID(ctx, tx, user.UUID)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetUser, user.UUID)
-	}
+		// Check if password is correct
+		auth, err := s.authRepo.TGetById(ctx, tx, existing.ID)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetAuth, existing.ID)
+		}
+		err = security.CheckPassword(auth.Password, password)
+		if err != nil {
+			return errs.Wrap(err, errMsg.IncorrectPassword)
+		}
 
-	// Check if password is correct
-	auth, err := s.authRepo.TGetById(ctx, tx, existing.ID)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetAuth, existing.ID)
-	}
-	err = security.CheckPassword(auth.Password, password)
-	if err != nil {
-		return errs.Wrap(err, errMsg.IncorrectPassword)
-	}
+		existing.Name = user.Name
+		existing.Phone = user.Phone
+		err = s.repo.TUpdate(ctx, tx, existing)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedUpdateUser, existing)
+		}
 
-	existing.Name = user.Name
-	existing.Phone = user.Phone
-	err = s.repo.TUpdate(ctx, tx, existing)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedUpdateUser, existing)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	return nil
+		return nil
+	})
 }
 
 func (s *user) Delete(ctx context.Context, uuid string) error {
@@ -169,88 +136,71 @@ func (s *user) Delete(ctx context.Context, uuid string) error {
 }
 
 func (s *user) AdminCreated(ctx context.Context, name string, phone string, sellerUUID string) (*model.User, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.User](ctx, s.pool, func(tx pgx.Tx) (*model.User, error) {
+		seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
+		}
 
-	seller, err := s.repo.TGetByUUID(ctx, tx, sellerUUID)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
-	}
+		phone = common.SanitizePhone(phone)
 
-	phone = common.SanitizePhone(phone)
+		count, err := s.repo.CountByPhone(ctx, tx, phone)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCountUser)
+		}
+		if count > 0 {
+			return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
+		}
 
-	count, err := s.repo.CountByPhone(ctx, tx, phone)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCountUser)
-	}
-	if count > 0 {
-		return nil, errs.New(errors.New(errMsg.UserAlreadyExists), errCode.AlreadyExists)
-	}
+		user := &model.User{
+			Name:  name,
+			Phone: phone,
+			Role:  roles.Client,
+		}
+		err = s.repo.TCreate(ctx, tx, user)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
+		}
+		// This password will be changed by the user upon first login
+		passwordHash, err := security.HashPassword(security.RandomPassword())
+		if err != nil {
+			return nil, errs.New(err, errCode.Internal)
+		}
+		auth := &model.Auth{
+			UserID:   user.ID,
+			Password: passwordHash,
+		}
+		err = s.authRepo.TCreate(ctx, tx, auth)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
+		}
 
-	user := &model.User{
-		Name:  name,
-		Phone: phone,
-		Role:  roles.Client,
-	}
-	err = s.repo.TCreate(ctx, tx, user)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCreateUser, user)
-	}
-	// This password will be changed by the user upon first login
-	passwordHash, err := security.HashPassword(security.RandomPassword())
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	auth := &model.Auth{
-		UserID:   user.ID,
-		Password: passwordHash,
-	}
-	err = s.authRepo.TCreate(ctx, tx, auth)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedCreateAuth, user.ID)
-	}
+		opLog := &model.OperationLog{
+			User:        *user,
+			Seller:      *seller,
+			Operation:   "User",
+			OperationId: user.ID,
+		}
+		_ = s.opLogRepo.Create(context.Background(), opLog) // We ignore the error here since it's not critical
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-
-	opLog := &model.OperationLog{
-		User:        *user,
-		Seller:      *seller,
-		Operation:   "User",
-		OperationId: user.ID,
-	}
-	_ = s.opLogRepo.Create(context.Background(), opLog)
-
-	//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
-	return user, nil
+		//go s.wpp.SendImage(user, user.WelcomeMessage()) // TODO:
+		return user, nil
+	})
 }
 
 func (s *user) UpdateRole(ctx context.Context, uuid string, role roles.Role, enabled bool) (*model.User, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.User](ctx, s.pool, func(tx pgx.Tx) (*model.User, error) {
+		user, err := s.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
+		}
+		user.Role = user.Role.ToggleRole(role, enabled)
 
-	user, err := s.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetUser, uuid)
-	}
-	user.Role = user.Role.ToggleRole(role, enabled)
+		err = s.repo.TUpdate(ctx, tx, user)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedUpdateUser, user)
+		}
 
-	err = s.repo.TUpdate(ctx, tx, user)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedUpdateUser, user)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return user, nil
+		return user, nil
+	})
 }

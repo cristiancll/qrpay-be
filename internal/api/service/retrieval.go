@@ -5,8 +5,8 @@ import (
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/internal/api/model"
 	"github.com/cristiancll/qrpay-be/internal/api/repository"
-	"github.com/cristiancll/qrpay-be/internal/errCode"
 	"github.com/cristiancll/qrpay-be/internal/errMsg"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -38,164 +38,113 @@ func NewRetrieval(pool *pgxpool.Pool, r repository.Retrieval, userRepo repositor
 }
 
 func (r *retrieval) Create(ctx context.Context, userUUID string, sellerUUID string, saleItemUUIDs []string) error {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	// Validates user
-	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetUser, userUUID)
-	}
-
-	// Validates seller
-	seller, err := r.userRepo.TGetByUUID(ctx, tx, sellerUUID)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
-	}
-
-	// Validates sale items
-	saleItems, err := r.saleItemRepo.TGetAllByUUIDs(ctx, tx, saleItemUUIDs)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetAllSaleItem, saleItemUUIDs)
-	}
-
-	// Creates retrievals
-	for _, saleItem := range saleItems {
-		retrieval := &model.Retrieval{
-			User:     *user,
-			Seller:   *seller,
-			SaleItem: *saleItem,
-		}
-		err = r.repo.TCreate(ctx, tx, retrieval)
+	return TransactionVoid(ctx, r.pool, func(tx pgx.Tx) error {
+		// Validates user
+		user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
 		if err != nil {
-			return errs.Wrap(err, errMsg.FailedCreateRetrieval, user, seller, saleItem)
+			return errs.Wrap(err, errMsg.FailedGetUser, userUUID)
 		}
-		opLog := &model.OperationLog{
-			User:        *user,
-			Seller:      *seller,
-			Operation:   "Retrieval",
-			OperationId: retrieval.ID,
-		}
-		_ = r.opLogRepo.Create(context.Background(), opLog)
-	}
 
-	err = tx.Commit(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	//go r.wpp.SendText(user, user.NewRetrieval(saleItems)) // TODO
-	return nil
+		// Validates seller
+		seller, err := r.userRepo.TGetByUUID(ctx, tx, sellerUUID)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetUser, sellerUUID)
+		}
+
+		// Validates sale items
+		saleItems, err := r.saleItemRepo.TGetAllByUUIDs(ctx, tx, saleItemUUIDs)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetAllSaleItem, saleItemUUIDs)
+		}
+
+		// Creates retrievals
+		for _, saleItem := range saleItems {
+			retrieval := &model.Retrieval{
+				User:     *user,
+				Seller:   *seller,
+				SaleItem: *saleItem,
+			}
+			err = r.repo.TCreate(ctx, tx, retrieval)
+			if err != nil {
+				return errs.Wrap(err, errMsg.FailedCreateRetrieval, user, seller, saleItem)
+			}
+			opLog := &model.OperationLog{
+				User:        *user,
+				Seller:      *seller,
+				Operation:   "Retrieval",
+				OperationId: retrieval.ID,
+			}
+			_ = r.opLogRepo.Create(context.Background(), opLog)
+		}
+
+		//go r.wpp.SendText(user, user.NewRetrieval(saleItems)) // TODO
+		return nil
+	})
 }
 
 func (r *retrieval) Update(ctx context.Context, uuid string, delivered bool) (*model.Retrieval, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.Retrieval, error](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
+		retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
+		}
+		retrieval.Delivered = delivered
+		err = r.repo.TUpdate(ctx, tx, retrieval)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedUpdateRetrieval, retrieval)
+		}
 
-	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
-	}
-	retrieval.Delivered = delivered
-	err = r.repo.TUpdate(ctx, tx, retrieval)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedUpdateRetrieval, retrieval)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return retrieval, nil
+		return retrieval, nil
+	})
 }
 
 func (r *retrieval) Delete(ctx context.Context, uuid string) error {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return TransactionVoid(ctx, r.pool, func(tx pgx.Tx) error {
+		retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
+		}
 
-	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
-	}
-
-	err = r.repo.TDelete(ctx, tx, retrieval)
-	if err != nil {
-		return errs.Wrap(err, errMsg.FailedDeleteRetrieval, retrieval)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return errs.New(err, errCode.Internal)
-	}
-	return nil
+		err = r.repo.TDelete(ctx, tx, retrieval)
+		if err != nil {
+			return errs.Wrap(err, errMsg.FailedDeleteRetrieval, retrieval)
+		}
+		return nil
+	})
 }
 
 func (r *retrieval) Get(ctx context.Context, uuid string) (*model.Retrieval, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return Transaction[*model.Retrieval, error](ctx, r.pool, func(tx pgx.Tx) (*model.Retrieval, error) {
+		retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
+		}
 
-	retrieval, err := r.repo.TGetByUUID(ctx, tx, uuid)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetRetrieval, uuid)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return retrieval, nil
+		return retrieval, nil
+	})
 }
 
 func (r *retrieval) List(ctx context.Context) ([]*model.Retrieval, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
-
-	retrievals, err := r.repo.TGetAll(ctx, tx)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return retrievals, nil
+	return TransactionReturnList[*model.Retrieval](ctx, r.pool, func(tx pgx.Tx) ([]*model.Retrieval, error) {
+		retrievals, err := r.repo.TGetAll(ctx, tx)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval)
+		}
+		return retrievals, nil
+	})
 }
 
 func (r *retrieval) ListByUser(ctx context.Context, userUUID string) ([]*model.Retrieval, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	defer tx.Rollback(ctx)
+	return TransactionReturnList[*model.Retrieval](ctx, r.pool, func(tx pgx.Tx) ([]*model.Retrieval, error) {
+		user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
+		}
 
-	user, err := r.userRepo.TGetByUUID(ctx, tx, userUUID)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetUser, userUUID)
-	}
-
-	retrievals, err := r.repo.TGetAllByUser(ctx, tx, user)
-	if err != nil {
-		return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval, user)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return nil, errs.New(err, errCode.Internal)
-	}
-	return retrievals, nil
+		retrievals, err := r.repo.TGetAllByUser(ctx, tx, user)
+		if err != nil {
+			return nil, errs.Wrap(err, errMsg.FailedGetAllRetrieval, user)
+		}
+		return retrievals, nil
+	})
 }
