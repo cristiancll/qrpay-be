@@ -4,11 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	errs "github.com/cristiancll/go-errors"
 	"github.com/cristiancll/qrpay-be/configs"
 	"github.com/cristiancll/qrpay-be/internal/api/proto/generated"
 	"github.com/cristiancll/qrpay-be/internal/errCode"
+	"github.com/cristiancll/qrpay-be/internal/errMsg"
 	"github.com/cristiancll/qrpay-be/internal/security"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -33,12 +33,12 @@ func authlessEndpoint(info *grpc.UnaryServerInfo) bool {
 func getTokenFromCookie(ctx context.Context) (*http.Cookie, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, errs.New(errors.New(""), errCode.Internal)
+		return nil, errs.New(errors.New(errMsg.FailedMetadataContext), errCode.Internal)
 	}
 
 	cookies := md.Get("cookie")
 	if len(cookies) == 0 {
-		return nil, errs.New(errors.New(""), errCode.Internal)
+		return nil, errs.New(errors.New(errMsg.FailedCookieMetadata), errCode.Internal)
 	}
 	cookie := http.Header{"Cookie": []string{cookies[0]}}
 	requestCookie, err := http.NewRequest("GET", "/", nil)
@@ -55,7 +55,7 @@ func getTokenFromCookie(ctx context.Context) (*http.Cookie, error) {
 
 func extractToken(tokenStrings []string) (string, error) {
 	if len(tokenStrings) == 0 {
-		return "", fmt.Errorf("no authorization token provided")
+		return "", errs.New(errors.New(errMsg.NoAuthToken), errCode.Internal)
 	}
 
 	tokenString := strings.TrimSpace(tokenStrings[0])
@@ -71,7 +71,7 @@ func extractToken(tokenStrings []string) (string, error) {
 	sanitizedToken = strings.TrimSpace(sanitizedToken)
 
 	if sanitizedToken == "" {
-		return "", fmt.Errorf("invalid authorization token")
+		return "", errs.New(errors.New(errMsg.InvalidToken), errCode.Internal)
 	}
 
 	return sanitizedToken, nil
@@ -80,12 +80,12 @@ func extractToken(tokenStrings []string) (string, error) {
 func getTokenFromAuthorization(ctx context.Context) (string, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return "", errs.New(errors.New(""), errCode.Internal)
+		return "", errs.New(errors.New(errMsg.FailedMetadataContext), errCode.Internal)
 	}
 
 	tokenStrings := md.Get("Authorization")
 	if len(tokenStrings) == 0 {
-		return "", errs.New(errors.New(""), errCode.Internal)
+		return "", errs.New(errors.New(errMsg.FailedAuthTokenMetadata), errCode.Internal)
 	}
 	token, err := extractToken(tokenStrings)
 	if err != nil {
@@ -117,7 +117,7 @@ func AuthInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServe
 	publicKey := configs.Get().Keys.JWT.PublicKey
 	claims, refreshedToken, err := security.VerifyJWTToken(tokenString, publicKey)
 	if err != nil {
-		return nil, errs.Wrap(errors.New(""), "")
+		return nil, errs.Wrap(err, errMsg.FailedVerifyToken, tokenString, publicKey)
 	}
 	if refreshedToken != "" {
 		if configs.Get().JWT.IsSourceCookies() {
